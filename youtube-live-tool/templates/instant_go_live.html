@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instant Go Live - YouTube Live Dashboard</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+            overflow: hidden;
+            max-width: 800px;
+            width: 100%;
+            position: relative;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            position: relative;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="white" opacity="0.1"/><circle cx="75" cy="75" r="1" fill="white" opacity="0.1"/><circle cx="50" cy="10" r="0.5" fill="white" opacity="0.1"/><circle cx="10" cy="60" r="0.5" fill="white" opacity="0.1"/><circle cx="90" cy="40" r="0.5" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+            opacity: 0.3;
+        }
+
+        .header-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .header p {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+
+        .live-badge {
+            display: none;
+            background: #e53e3e;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 25px;
+            font-size: 14px;
+            font-weight: 600;
+            animation: livePulse 2s infinite;
+            margin-left: 15px;
+        }
+
+        @keyframes livePulse {
+            0% { box-shadow: 0 0 0 0 rgba(229, 62, 62, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(229, 62, 62, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(229, 62, 62, 0); }
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .status-section {
+            background: #f8fafc;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            border-left: 4px solid #667eea;
+        }
+
+        .status-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+
+        .status-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .status-label {
+            font-weight: 600;
+            color: #2d3748;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-value {
+            font-family: 'Courier New', monospace;
+            background: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            color: #4a5568;
+        }
+
+        .timer {
+            background: linear-gradient(135deg, #48bb78, #38a169);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-weight: 600;
+            font-size: 18px;
+            display: none;
+        }
+
+        .live-timer {
+            background: linear-gradient(135deg, #e53e3e, #c53030);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-weight: 600;
+            font-size: 18px;
+            font-family: 'Courier New', monospace;
+            animation: livePulse 2s infinite;
+            box-shadow: 0 4px 15px rgba(229, 62, 62, 0.3);
+        }
+
+        .video-container {
+            position: relative;
+            background: #000;
+            border-radius: 15px;
+            overflow: hidden;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .video-preview {
+            width: 100%;
+            height: 300px;
+            object-fit: cover;
+            background: #111;
+        }
+
+        .video-overlay {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            flex: 1;
+            min-width: 150px;
+            padding: 15px 25px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #e53e3e, #c53030);
+            color: white;
+            box-shadow: 0 4px 15px rgba(229, 62, 62, 0.3);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(229, 62, 62, 0.4);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #718096, #4a5568);
+            color: white;
+            box-shadow: 0 4px 15px rgba(113, 128, 150, 0.3);
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(113, 128, 150, 0.4);
+        }
+
+        .btn:disabled {
+            background: #e2e8f0;
+            color: #a0aec0;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .info-section {
+            background: #f7fafc;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+        }
+
+        .info-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .live-url {
+            background: linear-gradient(135deg, #c6f6d5, #9ae6b4);
+            border: 2px solid #68d391;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 15px;
+        }
+
+        .live-url a {
+            color: #22543d;
+            text-decoration: none;
+            font-weight: 600;
+            word-break: break-all;
+        }
+
+        .live-url a:hover {
+            text-decoration: underline;
+        }
+
+        .status-output {
+            background: #fff3e0;
+            border: 2px solid #f6ad55;
+            border-radius: 12px;
+            padding: 15px;
+            margin-top: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            color: #c05621;
+            max-height: 120px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+
+        .encoder-output {
+            background: #f4f4f4;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            color: #374151;
+            max-height: 100px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+
+        .back-link {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: white;
+            text-decoration: none;
+            font-size: 18px;
+            opacity: 0.8;
+            transition: opacity 0.3s ease;
+        }
+
+        .back-link:hover {
+            opacity: 1;
+        }
+
+        .error-message {
+            background: #fed7d7;
+            border: 2px solid #f56565;
+            border-radius: 12px;
+            padding: 20px;
+            color: #742a2a;
+            font-weight: 600;
+            margin-top: 15px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                border-radius: 15px;
+            }
+            
+            .content {
+                padding: 20px;
+            }
+            
+            .controls {
+                flex-direction: column;
+            }
+            
+            .btn {
+                min-width: auto;
+            }
+            
+            .header h1 {
+                font-size: 24px;
+            }
+        }
+</style>
+</head>
+<body>
+<div class="container">
+        <a href="/" class="back-link">
+            <i class="fas fa-arrow-left"></i>
+        </a>
+        
+        <div class="header">
+            <div class="header-content">
+                <h1>
+                    <i class="fas fa-video"></i>
+                    Instant Go Live
+                    <span class="live-badge" id="liveBadge">● LIVE</span>
+                </h1>
+                <p>Start streaming to YouTube instantly with your camera</p>
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="status-section">
+                <div class="status-row">
+                    <div class="status-label">
+                        <i class="fas fa-clock"></i>
+                        Current Time
+                    </div>
+                    <div class="status-value" id="clock">Loading...</div>
+                </div>
+                <div class="status-row">
+                    <div class="status-label">
+                        <i class="fas fa-stopwatch"></i>
+                        Stream Duration
+                    </div>
+                    <div class="timer" id="timer">00:00:00</div>
+                </div>
+                <div class="status-row" id="liveTimeRow" style="display:none;">
+                    <div class="status-label">
+                        <i class="fas fa-broadcast-tower"></i>
+                        Live Stream Time
+                    </div>
+                    <div class="live-timer" id="liveTimer">00:00:00</div>
+                </div>
+            </div>
+
+            <div class="video-container">
+                <video id="preview" class="video-preview" autoplay muted playsinline></video>
+                <div class="video-overlay">
+                    <i class="fas fa-camera"></i>
+                    Camera Preview
+                </div>
+            </div>
+
+            <div class="controls">
+                <button id="startBtn" class="btn btn-primary">
+                    <i class="fas fa-play"></i>
+                    Go Live
+                </button>
+                <button id="stopBtn" class="btn btn-secondary" disabled>
+                    <i class="fas fa-stop"></i>
+                    Stop Live
+                </button>
+            </div>
+
+            <div id="startTimestamp" style="display:none;" class="info-section">
+                <div class="info-title">
+                    <i class="fas fa-calendar-check"></i>
+                    Stream Started
+                </div>
+                <div id="startTimeText"></div>
+            </div>
+
+            <div id="liveUrl" style="display:none;" class="live-url">
+                <div class="info-title">
+                    <i class="fas fa-external-link-alt"></i>
+                    You're Live!
+                </div>
+                <div id="liveUrlText"></div>
+            </div>
+
+            <div id="ffmpegStatusLabel" style="display:none;" class="info-section">
+                <div class="info-title">
+                    <i class="fas fa-broadcast-tower"></i>
+                    Live Stream Status
+                </div>
+                <div id="ffmpegOutput" class="status-output"></div>
+            </div>
+
+            <div id="ffmpegAllLabel" style="display:none;" class="info-section">
+                <div class="info-title">
+                    <i class="fas fa-cogs"></i>
+                    Encoder Output
+    </div>
+                <div id="ffmpegAllOutput" class="encoder-output"></div>
+    </div>
+    </div>
+</div>
+<script>
+// --- Clock ---
+function updateClock() {
+    const now = new Date();
+    const hh = String(now.getHours()).padStart(2,'0');
+    const mm = String(now.getMinutes()).padStart(2,'0');
+    const ss = String(now.getSeconds()).padStart(2,'0');
+    const day = String(now.getDate()).padStart(2,'0');
+    const mon = String(now.getMonth()+1).padStart(2,'0');
+    const yyyy = now.getFullYear();
+    document.getElementById('clock').textContent = `${yyyy}-${mon}-${day} ${hh}:${mm}:${ss}`;
+}
+setInterval(updateClock, 1000);
+updateClock();
+// --- End Clock ---
+
+let mediaRecorder, stream;
+let isStreaming = false;
+let startTime = null;
+let timerInterval = null;
+let liveTimerInterval = null;
+let liveStreamStartTime = null;
+const preview = document.getElementById('preview');
+const startBtn = document.getElementById('startBtn');
+const stopBtn = document.getElementById('stopBtn');
+const liveUrl = document.getElementById('liveUrl');
+const timer = document.getElementById('timer');
+const liveBadge = document.getElementById('liveBadge');
+const liveTimer = document.getElementById('liveTimer');
+const liveTimeRow = document.getElementById('liveTimeRow');
+
+function updateTimer() {
+    if (!startTime) return;
+    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+    const h = String(Math.floor(elapsed/3600)).padStart(2,'0');
+    const m = String(Math.floor((elapsed%3600)/60)).padStart(2,'0');
+    const s = String(elapsed%60).padStart(2,'0');
+    timer.textContent = `${h}:${m}:${s}`;
+}
+
+function updateLiveTimer() {
+    if (!liveStreamStartTime) return;
+    const elapsed = Math.floor((Date.now() - liveStreamStartTime) / 1000);
+    const h = String(Math.floor(elapsed/3600)).padStart(2,'0');
+    const m = String(Math.floor((elapsed%3600)/60)).padStart(2,'0');
+    const s = String(elapsed%60).padStart(2,'0');
+    liveTimer.textContent = `${h}:${m}:${s}`;
+}
+
+startBtn.onclick = async function() {
+    startBtn.disabled = true;
+    stopBtn.disabled = false;
+    liveUrl.style.display = 'none';
+    // Step 1: Create stream and get RTMP info
+    let resp = await fetch('/instant_create_stream', { method: 'POST' });
+    let data = await resp.json();
+    if (data.error) {
+        document.getElementById('liveUrlText').innerHTML = `<div class="error-message">Error: ${data.error}</div>`;
+        document.getElementById('liveUrl').style.display = 'block';
+        startBtn.disabled = false;
+        stopBtn.disabled = true;
+        return;
+    }
+    // Step 2: Start camera/mic and upload chunks
+    stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    preview.srcObject = stream;
+    mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm; codecs=vp8,opus' });
+    isStreaming = true;
+    startTime = null;
+    mediaRecorder.ondataavailable = async function(e) {
+        if (e.data.size > 0 && isStreaming) {
+            const formData = new FormData();
+            formData.append('chunk', e.data);
+            await fetch('/instant_upload_stream', { method: 'POST', body: formData });
+        }
+    };
+    mediaRecorder.start(1000); // send every second
+    // Step 3: Go live (create/bind/transition broadcast)
+    let liveResp = await fetch('/instant_go_live', { method: 'POST' });
+    let liveData = await liveResp.json();
+    if (liveData.live_url) {
+        const now = new Date();
+        const formatted = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0') + ' ' +
+            String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0') + ':' + String(now.getSeconds()).padStart(2,'0');
+        document.getElementById('startTimeText').textContent = `Started at: ${formatted}`;
+        document.getElementById('startTimestamp').style.display = 'block';
+        document.getElementById('liveUrlText').innerHTML = `<a href="${liveData.live_url}" target="_blank">${liveData.live_url}</a>`;
+        document.getElementById('liveUrl').style.display = 'block';
+        liveBadge.style.display = 'inline-block';
+        startTime = Date.now();
+        timer.style.display = 'inline-block';
+        updateTimer();
+        timerInterval = setInterval(updateTimer, 1000);
+        
+        // Start live timer
+        liveStreamStartTime = Date.now();
+        liveTimeRow.style.display = 'flex';
+        updateLiveTimer();
+        liveTimerInterval = setInterval(updateLiveTimer, 1000);
+        // Show and start polling ffmpeg output
+        document.getElementById('ffmpegStatusLabel').style.display = 'block';
+        document.getElementById('ffmpegOutput').style.display = 'block';
+        document.getElementById('ffmpegAllLabel').style.display = 'block';
+        document.getElementById('ffmpegAllOutput').style.display = 'block';
+        pollFfmpegOutput();
+    } else if (liveData.error) {
+        document.getElementById('liveUrlText').innerHTML = `<div class="error-message">Error: ${liveData.error}</div>`;
+        document.getElementById('liveUrl').style.display = 'block';
+        liveBadge.style.display = 'none';
+        timer.style.display = 'none';
+        if (timerInterval) clearInterval(timerInterval);
+    }
+};
+
+stopBtn.onclick = function() {
+    isStreaming = false;
+    startBtn.disabled = false;
+    stopBtn.disabled = true;
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+    if (stream) stream.getTracks().forEach(track => track.stop());
+    fetch('/instant_stop_stream', { method: 'POST' });
+    liveBadge.style.display = 'none';
+    timer.style.display = 'none';
+    liveTimeRow.style.display = 'none';
+    document.getElementById('startTimestamp').style.display = 'none';
+    document.getElementById('ffmpegStatusLabel').style.display = 'none';
+    document.getElementById('ffmpegOutput').style.display = 'none';
+    document.getElementById('ffmpegAllLabel').style.display = 'none';
+    document.getElementById('ffmpegAllOutput').style.display = 'none';
+    if (timerInterval) clearInterval(timerInterval);
+    if (liveTimerInterval) clearInterval(liveTimerInterval);
+    if (window.ffmpegPollInterval) clearInterval(window.ffmpegPollInterval);
+    liveStreamStartTime = null;
+};
+
+function pollFfmpegOutput() {
+    function fetchOutput() {
+        fetch('/instant_ffmpeg_status')
+            .then(r => r.json())
+            .then(data => {
+                // Show last line as main stats, all lines as encoder output
+                const lines = (data.output || '').split('\n');
+                document.getElementById('ffmpegOutput').textContent = lines.length ? lines[lines.length-1] : '(no output yet)';
+                document.getElementById('ffmpegAllOutput').textContent = data.output || '(no output yet)';
+            });
+    }
+    fetchOutput();
+    window.ffmpegPollInterval = setInterval(fetchOutput, 2000);
+}
+</script>
+</body>
+</html>
