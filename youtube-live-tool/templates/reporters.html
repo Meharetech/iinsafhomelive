@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reporters - YouTube Live Dashboard</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .header h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2.5rem;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-card i {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            color: #667eea;
+        }
+
+        .stat-card h3 {
+            font-size: 2rem;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .stat-card p {
+            color: #666;
+            font-size: 1rem;
+        }
+
+        .reporters-section {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .section-header h2 {
+            color: #333;
+            font-size: 1.8rem;
+        }
+
+        .refresh-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background 0.3s ease;
+        }
+
+        .refresh-btn:hover {
+            background: #5a6fd8;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .loading i {
+            font-size: 2rem;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .reporters-table-container {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            margin-top: 20px;
+        }
+
+        .reporters-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.95rem;
+        }
+
+        .reporters-table thead {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .reporters-table th {
+            padding: 20px 15px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: none;
+        }
+
+        .reporters-table tbody tr {
+            border-bottom: 1px solid #f0f0f0;
+            transition: all 0.3s ease;
+        }
+
+        .reporters-table tbody tr:hover {
+            background: linear-gradient(90deg, #f8f9ff, #ffffff);
+            transform: scale(1.01);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.1);
+        }
+
+        .reporters-table tbody tr:last-child {
+            border-bottom: none;
+        }
+
+        .reporters-table td {
+            padding: 18px 15px;
+            vertical-align: middle;
+        }
+
+        .reporter-name {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 4px;
+        }
+
+        .reporter-email {
+            color: #667eea;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .reporter-phone {
+            color: #666;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .reporter-location {
+            color: #666;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            display: inline-block;
+            min-width: 80px;
+            text-align: center;
+        }
+
+        .status-active {
+            background: #e8f5e8;
+            color: #2e7d32;
+        }
+
+        .status-inactive {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        .table-icon {
+            color: #667eea;
+            font-size: 0.9rem;
+        }
+
+        .reporter-avatar {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 1.1rem;
+            margin-right: 10px;
+        }
+
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+
+        .empty-state i {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            color: #ccc;
+        }
+
+        .empty-state h3 {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+            color: #999;
+        }
+
+        .empty-state p {
+            font-size: 1rem;
+            color: #aaa;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .reporters-table {
+                font-size: 0.8rem;
+            }
+
+            .reporters-table th,
+            .reporters-table td {
+                padding: 12px 8px;
+            }
+
+            .reporter-name {
+                font-size: 1rem;
+            }
+
+            .reporter-email,
+            .reporter-phone,
+            .reporter-location {
+                font-size: 0.8rem;
+            }
+
+            .reporter-avatar {
+                width: 35px;
+                height: 35px;
+                font-size: 0.9rem;
+            }
+
+            .section-header {
+                flex-direction: column;
+                gap: 15px;
+                align-items: stretch;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1><i class="fas fa-users"></i> Reporters</h1>
+            <p>Manage and view all reporters in the system</p>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <i class="fas fa-users"></i>
+                <h3 id="totalReporters">-</h3>
+                <p>Total Reporters</p>
+            </div>
+            <div class="stat-card">
+                <i class="fas fa-user-check"></i>
+                <h3 id="activeReporters">-</h3>
+                <p>Verified Reporters</p>
+            </div>
+            <div class="stat-card">
+                <i class="fas fa-map-marker-alt"></i>
+                <h3 id="totalDepartments">-</h3>
+                <p>Cities</p>
+            </div>
+        </div>
+
+        <!-- Reporters Section -->
+        <div class="reporters-section">
+            <div class="section-header">
+                <h2><i class="fas fa-list"></i> Reporter List</h2>
+                <div style="display: flex; gap: 15px; align-items: center;">
+                    <div style="position: relative;">
+                        <input type="text" id="searchInput" placeholder="Search reporters..." 
+                               style="padding: 10px 15px 10px 40px; border: 2px solid #e0e0e0; border-radius: 25px; width: 300px; font-size: 1rem; outline: none; transition: all 0.3s ease;"
+                               onkeyup="filterReporters()">
+                        <i class="fas fa-search" style="position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: #999;"></i>
+                    </div>
+                    <button class="refresh-btn" onclick="loadReporters()">
+                        <i class="fas fa-sync-alt"></i> Refresh
+                    </button>
+                    <button class="refresh-btn" onclick="showEmailModal()" style="background: #28a745;">
+                        <i class="fas fa-envelope"></i> Send Email
+                    </button>
+                </div>
+            </div>
+
+            <!-- Selection Controls -->
+            <div id="selectionControls" style="display: none; margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <button onclick="selectAllReporters()" style="background: #007bff; color: white; border: none; padding: 8px 15px; border-radius: 5px; margin-right: 10px;">
+                            <i class="fas fa-check-square"></i> Select All
+                        </button>
+                        <button onclick="deselectAllReporters()" style="background: #6c757d; color: white; border: none; padding: 8px 15px; border-radius: 5px; margin-right: 10px;">
+                            <i class="fas fa-square"></i> Deselect All
+                        </button>
+                        <span id="selectedCount" style="color: #666; font-weight: 500;">0 reporters selected</span>
+                    </div>
+                    <button onclick="hideSelectionControls()" style="background: #dc3545; color: white; border: none; padding: 8px 15px; border-radius: 5px;">
+                        <i class="fas fa-times"></i> Close
+                    </button>
+                </div>
+            </div>
+
+            <!-- Loading State -->
+            <div id="loadingState" class="loading">
+                <i class="fas fa-spinner"></i>
+                <p>Loading reporters...</p>
+            </div>
+
+            <!-- Error State -->
+            <div id="errorState" class="error" style="display: none;">
+                <i class="fas fa-exclamation-triangle"></i>
+                <p id="errorMessage">Failed to load reporters</p>
+            </div>
+
+            <!-- Reporters Table -->
+            <div id="reportersTable" class="reporters-table-container" style="display: none;">
+                <table class="reporters-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 50px;">
+                                <input type="checkbox" id="selectAllCheckbox" onchange="toggleAllSelection()" style="transform: scale(1.2);">
+                            </th>
+                            <th>Reporter</th>
+                            <th>Email</th>
+                            <th>Phone</th>
+                            <th>Location</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="reportersTableBody">
+                        <!-- Reporters will be loaded here -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Empty State -->
+            <div id="emptyState" class="empty-state" style="display: none;">
+                <i class="fas fa-user-slash"></i>
+                <h3>No Reporters Found</h3>
+                <p id="emptyMessage">There are no reporters in the system yet.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Email Modal -->
+    <div id="emailModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; overflow-y: auto;">
+        <div style="background: white; margin: 50px auto; max-width: 600px; border-radius: 15px; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
+            <!-- Modal Header -->
+            <div style="background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 25px; border-radius: 15px 15px 0 0;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <h2 style="margin: 0; font-size: 1.5rem;"><i class="fas fa-envelope"></i> Send Email to Selected Reporters</h2>
+                    <button onclick="hideEmailModal()" style="background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer;">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Modal Body -->
+            <div style="padding: 30px;">
+                <!-- Selected Reporters Info -->
+                <div id="selectedReportersInfo" style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                    <h4 style="margin: 0 0 10px 0; color: #333;">Selected Reporters:</h4>
+                    <div id="selectedReportersList" style="max-height: 150px; overflow-y: auto;">
+                        <!-- Selected reporters will be listed here -->
+                    </div>
+                </div>
+
+                <!-- Email Form -->
+                <form id="emailForm">
+                    <div style="margin-bottom: 20px;">
+                        <label for="emailSubject" style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">Subject:</label>
+                        <input type="text" id="emailSubject" placeholder="Enter email subject..." 
+                               style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 1rem; outline: none; transition: border-color 0.3s ease;"
+                               onfocus="this.style.borderColor='#667eea'"
+                               onblur="this.style.borderColor='#e0e0e0'">
+                    </div>
+
+                    <div style="margin-bottom: 20px;">
+                        <label for="emailBody" style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">Message:</label>
+                        <textarea id="emailBody" placeholder="Enter your message..." rows="8"
+                                  style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 1rem; outline: none; transition: border-color 0.3s ease; resize: vertical;"
+                                  onfocus="this.style.borderColor='#667eea'"
+                                  onblur="this.style.borderColor='#e0e0e0'"></textarea>
+                    </div>
+
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="checkbox" id="useHtml" style="margin-right: 8px;">
+                            <span style="color: #666;">Use HTML formatting</span>
+                        </label>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div style="display: flex; gap: 15px; justify-content: flex-end;">
+                        <button type="button" onclick="hideEmailModal()" 
+                                style="background: #6c757d; color: white; border: none; padding: 12px 25px; border-radius: 8px; cursor: pointer; font-size: 1rem;">
+                            <i class="fas fa-times"></i> Cancel
+                        </button>
+                        <button type="submit" 
+                                style="background: #28a745; color: white; border: none; padding: 12px 25px; border-radius: 8px; cursor: pointer; font-size: 1rem;">
+                            <i class="fas fa-paper-plane"></i> Send Email
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Loading State -->
+                <div id="emailLoading" style="display: none; text-align: center; padding: 20px;">
+                    <i class="fas fa-spinner" style="animation: spin 1s linear infinite; font-size: 2rem; color: #667eea;"></i>
+                    <p style="margin: 10px 0 0 0; color: #666;">Sending emails...</p>
+                </div>
+
+                <!-- Success/Error Messages -->
+                <div id="emailMessage" style="display: none; padding: 15px; border-radius: 8px; margin-top: 20px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allReporters = [];
+        let filteredReporters = [];
+        let selectedReporterIds = new Set(); // Track selected reporter IDs globally
+
+        // Load reporters on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadReporters();
+        });
+
+        async function loadReporters() {
+            const loadingState = document.getElementById('loadingState');
+            const errorState = document.getElementById('errorState');
+            const reportersTable = document.getElementById('reportersTable');
+            const emptyState = document.getElementById('emptyState');
+
+            // Show loading state
+            loadingState.style.display = 'block';
+            errorState.style.display = 'none';
+            reportersTable.style.display = 'none';
+            emptyState.style.display = 'none';
+
+            try {
+                console.log('Fetching reporters from API...');
+                const response = await fetch('/user/reporter');
+                console.log('Response status:', response.status);
+                
+                const data = await response.json();
+                console.log('API Response:', data);
+
+                if (data.success) {
+                    if (data.reporters && data.reporters.length > 0) {
+                        console.log('Found reporters:', data.reporters.length);
+                        console.log('First reporter:', data.reporters[0]);
+                        
+                        // Store all reporters
+                        allReporters = data.reporters;
+                        filteredReporters = [...allReporters];
+                        
+                        // Display reporters
+                        displayReporters(filteredReporters);
+                        updateStats(allReporters);
+                        
+                        // Update selection count after loading
+                        updateSelection();
+                    } else {
+                        console.log('No reporters found in API response');
+                        console.log('Data structure:', data);
+                        allReporters = [];
+                        filteredReporters = [];
+                        showEmptyState(data.message || 'No reporters available from API');
+                    }
+                } else {
+                    console.log('API returned error:', data.error);
+                    showError(data.error || 'Failed to load reporters');
+                }
+            } catch (error) {
+                console.error('Error loading reporters:', error);
+                showError('Network error. Please check your connection.');
+            }
+        }
+
+        function displayReporters(reporters) {
+            const loadingState = document.getElementById('loadingState');
+            const errorState = document.getElementById('errorState');
+            const reportersTable = document.getElementById('reportersTable');
+            const emptyState = document.getElementById('emptyState');
+
+            loadingState.style.display = 'none';
+            errorState.style.display = 'none';
+
+            if (!reporters || reporters.length === 0) {
+                showEmptyState('No reporters available from API');
+                return;
+            }
+
+            const tableBody = document.getElementById('reportersTableBody');
+            tableBody.innerHTML = reporters.map((reporter, index) => {
+                const isSelected = selectedReporterIds.has(reporter.email || reporter.id || index);
+                return `
+                <tr>
+                    <td>
+                        <input type="checkbox" class="reporter-checkbox" data-index="${index}" 
+                               data-reporter-id="${reporter.email || reporter.id || index}"
+                               ${isSelected ? 'checked' : ''}
+                               onchange="updateSelection()" style="transform: scale(1.2);">
+                    </td>
+                    <td>
+                        <div style="display: flex; align-items: center;">
+                            <div class="reporter-avatar">
+                                ${(reporter.name || 'N/A').charAt(0).toUpperCase()}
+                            </div>
+                            <div class="reporter-name">${reporter.name || 'N/A'}</div>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="reporter-email">
+                            <i class="fas fa-envelope table-icon"></i>
+                            ${reporter.email || 'N/A'}
+                        </div>
+                    </td>
+                    <td>
+                        <div class="reporter-phone">
+                            <i class="fas fa-phone table-icon"></i>
+                            ${reporter.mobile || 'N/A'}
+                        </div>
+                    </td>
+                    <td>
+                        <div class="reporter-location">
+                            <i class="fas fa-map-marker-alt table-icon"></i>
+                            ${reporter.city || 'N/A'}, ${reporter.state || 'N/A'}
+                        </div>
+                    </td>
+                    <td>
+                        <span class="status-badge status-${reporter.verifiedReporter ? 'active' : 'inactive'}">
+                            ${reporter.verifiedReporter ? 'Verified' : 'Unverified'}
+                        </span>
+                    </td>
+                </tr>
+                `;
+            }).join('');
+
+            reportersTable.style.display = 'block';
+        }
+
+        function updateStats(reporters) {
+            const totalReporters = reporters.length;
+            const verifiedReporters = reporters.filter(r => r.verifiedReporter === true).length;
+            const cities = [...new Set(reporters.map(r => r.city).filter(city => city))].length;
+
+            document.getElementById('totalReporters').textContent = totalReporters;
+            document.getElementById('activeReporters').textContent = verifiedReporters;
+            document.getElementById('totalDepartments').textContent = cities;
+        }
+
+        function showEmptyState(message) {
+            const loadingState = document.getElementById('loadingState');
+            const errorState = document.getElementById('errorState');
+            const reportersTable = document.getElementById('reportersTable');
+            const emptyState = document.getElementById('emptyState');
+
+            loadingState.style.display = 'none';
+            errorState.style.display = 'none';
+            reportersTable.style.display = 'none';
+            emptyState.style.display = 'block';
+
+            document.getElementById('emptyMessage').textContent = message;
+        }
+
+        function showError(message) {
+            const loadingState = document.getElementById('loadingState');
+            const errorState = document.getElementById('errorState');
+            const reportersTable = document.getElementById('reportersTable');
+            const emptyState = document.getElementById('emptyState');
+
+            loadingState.style.display = 'none';
+            errorState.style.display = 'block';
+            reportersTable.style.display = 'none';
+            emptyState.style.display = 'none';
+
+            document.getElementById('errorMessage').textContent = message;
+        }
+
+        // Filter reporters based on search
+        function filterReporters() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            
+            filteredReporters = allReporters.filter(reporter => {
+                return !searchTerm || 
+                    (reporter.name && reporter.name.toLowerCase().includes(searchTerm)) ||
+                    (reporter.email && reporter.email.toLowerCase().includes(searchTerm)) ||
+                    (reporter.mobile && reporter.mobile.includes(searchTerm)) ||
+                    (reporter.city && reporter.city.toLowerCase().includes(searchTerm)) ||
+                    (reporter.state && reporter.state.toLowerCase().includes(searchTerm));
+            });
+            
+            displayReporters(filteredReporters);
+            
+            // Update selection state after filtering
+            updateSelection();
+        }
+
+        // Email functionality
+        function showEmailModal() {
+            const selectedCount = getSelectedReporters().length;
+            if (selectedCount === 0) {
+                alert('Please select at least one reporter to send email.');
+                return;
+            }
+            
+            updateSelectedReportersList();
+            document.getElementById('emailModal').style.display = 'block';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function hideEmailModal() {
+            document.getElementById('emailModal').style.display = 'none';
+            document.body.style.overflow = 'auto';
+            clearEmailForm();
+        }
+
+        function getSelectedReporters() {
+            const selectedReporters = [];
+            
+            // Get all reporters that are in the global selection set
+            allReporters.forEach(reporter => {
+                const reporterId = reporter.email || reporter.id || allReporters.indexOf(reporter);
+                if (selectedReporterIds.has(reporterId)) {
+                    selectedReporters.push(reporter);
+                }
+            });
+            
+            return selectedReporters;
+        }
+
+        function updateSelectedReportersList() {
+            const selectedReporters = getSelectedReporters();
+            const listContainer = document.getElementById('selectedReportersList');
+            
+            if (selectedReporters.length === 0) {
+                listContainer.innerHTML = '<p style="color: #999; font-style: italic;">No reporters selected</p>';
+                return;
+            }
+            
+            listContainer.innerHTML = selectedReporters.map(reporter => `
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #e0e0e0;">
+                    <div>
+                        <strong>${reporter.name || 'N/A'}</strong>
+                        <br>
+                        <small style="color: #666;">${reporter.email || 'N/A'}</small>
+                    </div>
+                    <span class="status-badge status-${reporter.verifiedReporter ? 'active' : 'inactive'}" style="font-size: 0.7rem;">
+                        ${reporter.verifiedReporter ? 'Verified' : 'Unverified'}
+                    </span>
+                </div>
+            `).join('');
+        }
+
+        function updateSelection() {
+            // Update global selection state based on current checkboxes
+            const checkboxes = document.querySelectorAll('.reporter-checkbox');
+            checkboxes.forEach(checkbox => {
+                const reporterId = checkbox.dataset.reporterId;
+                if (checkbox.checked) {
+                    selectedReporterIds.add(reporterId);
+                } else {
+                    selectedReporterIds.delete(reporterId);
+                }
+            });
+            
+            const selectedCount = selectedReporterIds.size;
+            document.getElementById('selectedCount').textContent = `${selectedCount} reporters selected`;
+            
+            // Show/hide selection controls
+            const selectionControls = document.getElementById('selectionControls');
+            if (selectedCount > 0) {
+                selectionControls.style.display = 'block';
+            } else {
+                selectionControls.style.display = 'none';
+            }
+            
+            // Update select all checkbox for current filtered results
+            const totalCheckboxes = document.querySelectorAll('.reporter-checkbox').length;
+            const checkedCheckboxes = document.querySelectorAll('.reporter-checkbox:checked').length;
+            const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+            
+            if (checkedCheckboxes === 0) {
+                selectAllCheckbox.indeterminate = false;
+                selectAllCheckbox.checked = false;
+            } else if (checkedCheckboxes === totalCheckboxes) {
+                selectAllCheckbox.indeterminate = false;
+                selectAllCheckbox.checked = true;
+            } else {
+                selectAllCheckbox.indeterminate = true;
+            }
+        }
+
+        function toggleAllSelection() {
+            const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+            const checkboxes = document.querySelectorAll('.reporter-checkbox');
+            
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = selectAllCheckbox.checked;
+            });
+            
+            updateSelection();
+        }
+
+        function selectAllReporters() {
+            // Add all currently visible reporters to selection
+            filteredReporters.forEach(reporter => {
+                const reporterId = reporter.email || reporter.id || allReporters.indexOf(reporter);
+                selectedReporterIds.add(reporterId);
+            });
+            
+            // Update checkboxes to reflect selection
+            const checkboxes = document.querySelectorAll('.reporter-checkbox');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = true;
+            });
+            
+            updateSelection();
+        }
+
+        function deselectAllReporters() {
+            // Remove all currently visible reporters from selection
+            filteredReporters.forEach(reporter => {
+                const reporterId = reporter.email || reporter.id || allReporters.indexOf(reporter);
+                selectedReporterIds.delete(reporterId);
+            });
+            
+            // Update checkboxes to reflect deselection
+            const checkboxes = document.querySelectorAll('.reporter-checkbox');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = false;
+            });
+            
+            updateSelection();
+        }
+
+        function hideSelectionControls() {
+            // Clear all selections globally
+            selectedReporterIds.clear();
+            
+            // Update all checkboxes
+            const checkboxes = document.querySelectorAll('.reporter-checkbox');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = false;
+            });
+            
+            // Hide selection controls
+            document.getElementById('selectionControls').style.display = 'none';
+            
+            // Update selection count
+            document.getElementById('selectedCount').textContent = '0 reporters selected';
+        }
+
+        function clearEmailForm() {
+            document.getElementById('emailSubject').value = '';
+            document.getElementById('emailBody').value = '';
+            document.getElementById('useHtml').checked = false;
+            document.getElementById('emailMessage').style.display = 'none';
+        }
+
+        // Email form submission
+        document.getElementById('emailForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const selectedReporters = getSelectedReporters();
+            if (selectedReporters.length === 0) {
+                alert('Please select at least one reporter.');
+                return;
+            }
+            
+            const subject = document.getElementById('emailSubject').value.trim();
+            const body = document.getElementById('emailBody').value.trim();
+            const useHtml = document.getElementById('useHtml').checked;
+            
+            if (!subject || !body) {
+                alert('Please fill in both subject and message.');
+                return;
+            }
+            
+            // Show loading state
+            document.getElementById('emailForm').style.display = 'none';
+            document.getElementById('emailLoading').style.display = 'block';
+            document.getElementById('emailMessage').style.display = 'none';
+            
+            try {
+                const recipients = selectedReporters.map(reporter => reporter.email).filter(email => email);
+                
+                if (recipients.length === 0) {
+                    throw new Error('No valid email addresses found for selected reporters.');
+                }
+                
+                const emailData = {
+                    recipients: recipients,
+                    subject: subject,
+                    body: body,
+                    html_body: useHtml ? body : null
+                };
+                
+                const response = await fetch('/api/email/send-bulk', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(emailData)
+                });
+                
+                const result = await response.json();
+                
+                // Hide loading state
+                document.getElementById('emailLoading').style.display = 'none';
+                document.getElementById('emailForm').style.display = 'block';
+                
+                // Show result message
+                const messageDiv = document.getElementById('emailMessage');
+                messageDiv.style.display = 'block';
+                
+                if (result.success) {
+                    messageDiv.style.background = '#d4edda';
+                    messageDiv.style.color = '#155724';
+                    messageDiv.style.border = '1px solid #c3e6cb';
+                    messageDiv.innerHTML = `
+                        <i class="fas fa-check-circle"></i> 
+                        <strong>Success!</strong> ${result.message}
+                    `;
+                    
+                    // Clear form and close modal after 3 seconds
+                    setTimeout(() => {
+                        hideEmailModal();
+                    }, 3000);
+                } else {
+                    messageDiv.style.background = '#f8d7da';
+                    messageDiv.style.color = '#721c24';
+                    messageDiv.style.border = '1px solid #f5c6cb';
+                    messageDiv.innerHTML = `
+                        <i class="fas fa-exclamation-triangle"></i> 
+                        <strong>Error!</strong> ${result.error || result.message}
+                    `;
+                }
+                
+            } catch (error) {
+                console.error('Error sending email:', error);
+                
+                // Hide loading state
+                document.getElementById('emailLoading').style.display = 'none';
+                document.getElementById('emailForm').style.display = 'block';
+                
+                // Show error message
+                const messageDiv = document.getElementById('emailMessage');
+                messageDiv.style.display = 'block';
+                messageDiv.style.background = '#f8d7da';
+                messageDiv.style.color = '#721c24';
+                messageDiv.style.border = '1px solid #f5c6cb';
+                messageDiv.innerHTML = `
+                    <i class="fas fa-exclamation-triangle"></i> 
+                    <strong>Error!</strong> Failed to send email: ${error.message}
+                `;
+            }
+        });
+    </script>
+</body>
+</html>

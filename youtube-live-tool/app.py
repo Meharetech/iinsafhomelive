@@ -5,6 +5,7 @@ import subprocess
 from datetime import datetime, timedelta
 from flask import Flask, redirect, url_for, session, request, render_template, Response, jsonify
 from flask_cors import CORS
+from flask_mail import Mail, Message
 from google_auth_oauthlib.flow import Flow
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
@@ -18,12 +19,23 @@ app.secret_key = 'your-secure-secret-key-here'  # Change this to a secure secret
 # Enable CORS for all routes
 CORS(app, origins=['*'], allow_headers=['Content-Type', 'Authorization'], methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'])
 
+# Email Configuration
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USERNAME'] = 'iinsaftest@gmail.com'
+app.config['MAIL_PASSWORD'] = 'clstvanemhrttcio'
+app.config['MAIL_DEFAULT_SENDER'] = 'iinsaftest@gmail.com'
+
+# Initialize Flask-Mail
+mail = Mail(app)
+
 # CORS response decorator for API endpoints
 def cors_response(response):
     """Add CORS headers to response"""
     response.headers['Access-Control-Allow-Origin'] = '*'
-    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
-    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+    response.headers['Access-Control-Allow-Methods'] = 'GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type', 'Authorization'
     return response
 
 # Authentication credentials
@@ -362,6 +374,11 @@ def switch_account(channel_id):
 def authorize():
     """Render the authorization form page"""
     return render_template('authorize.html')
+
+@app.route('/reporters')
+def reporters():
+    """Render the reporters page"""
+    return render_template('reporters.html')
 
 @app.route('/save_user_info', methods=['POST'])
 def save_user_info():
@@ -1148,6 +1165,219 @@ def multi_instant_stop_stream():
     return 'stopped'
 
 # --- MULTI-CHANNEL INSTANT GO LIVE FEATURE END ---
+
+# --- EMAIL FUNCTIONS ---
+
+def send_email(to_email, subject, body, html_body=None):
+    """Send email to specified address"""
+    try:
+        msg = Message(
+            subject=subject,
+            recipients=[to_email],
+            body=body,
+            html=html_body
+        )
+        mail.send(msg)
+        return True, "Email sent successfully"
+    except Exception as e:
+        return False, f"Failed to send email: {str(e)}"
+
+def send_bulk_email(recipients, subject, body, html_body=None):
+    """Send email to multiple recipients"""
+    try:
+        msg = Message(
+            subject=subject,
+            recipients=recipients,
+            body=body,
+            html=html_body
+        )
+        mail.send(msg)
+        return True, f"Email sent successfully to {len(recipients)} recipients"
+    except Exception as e:
+        return False, f"Failed to send bulk email: {str(e)}"
+
+# --- EMAIL API ENDPOINTS ---
+
+@app.route('/api/email/send', methods=['POST'])
+def send_single_email():
+    """Send email to a single recipient"""
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({'success': False, 'error': 'No data provided'}), 400
+        
+        required_fields = ['to', 'subject', 'body']
+        for field in required_fields:
+            if field not in data:
+                return jsonify({'success': False, 'error': f'Missing required field: {field}'}), 400
+        
+        success, message = send_email(
+            to_email=data['to'],
+            subject=data['subject'],
+            body=data['body'],
+            html_body=data.get('html_body')
+        )
+        
+        response = jsonify({
+            'success': success,
+            'message': message
+        })
+        return cors_response(response)
+        
+    except Exception as e:
+        response = jsonify({'success': False, 'error': str(e)})
+        return cors_response(response), 500
+
+@app.route('/api/email/send-bulk', methods=['POST'])
+def send_bulk_email_endpoint():
+    """Send email to multiple recipients"""
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({'success': False, 'error': 'No data provided'}), 400
+        
+        required_fields = ['recipients', 'subject', 'body']
+        for field in required_fields:
+            if field not in data:
+                return jsonify({'success': False, 'error': f'Missing required field: {field}'}), 400
+        
+        if not isinstance(data['recipients'], list) or len(data['recipients']) == 0:
+            return jsonify({'success': False, 'error': 'Recipients must be a non-empty list'}), 400
+        
+        success, message = send_bulk_email(
+            recipients=data['recipients'],
+            subject=data['subject'],
+            body=data['body'],
+            html_body=data.get('html_body')
+        )
+        
+        response = jsonify({
+            'success': success,
+            'message': message
+        })
+        return cors_response(response)
+        
+    except Exception as e:
+        response = jsonify({'success': False, 'error': str(e)})
+        return cors_response(response), 500
+
+@app.route('/api/email/send-to-reporters', methods=['POST'])
+def send_email_to_reporters():
+    """Send email to all reporters"""
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({'success': False, 'error': 'No data provided'}), 400
+        
+        required_fields = ['subject', 'body']
+        for field in required_fields:
+            if field not in data:
+                return jsonify({'success': False, 'error': f'Missing required field: {field}'}), 400
+        
+        # Get all reporters
+        try:
+            import requests
+            api_url = "http://localhost:5000/user/reporter"
+            external_response = requests.get(api_url, timeout=5)
+            
+            if external_response.status_code == 200:
+                external_data = external_response.json()
+                if 'data' in external_data and 'reporters' in external_data['data']:
+                    reporters = external_data['data']['reporters']
+                elif 'reporters' in external_data:
+                    reporters = external_data['reporters']
+                else:
+                    return jsonify({'success': False, 'error': 'No reporters found'}), 404
+            else:
+                return jsonify({'success': False, 'error': 'Failed to fetch reporters'}), 500
+                
+        except requests.exceptions.RequestException:
+            return jsonify({'success': False, 'error': 'External API not available'}), 500
+        
+        # Extract email addresses
+        recipients = [reporter['email'] for reporter in reporters if reporter.get('email')]
+        
+        if not recipients:
+            return jsonify({'success': False, 'error': 'No valid email addresses found'}), 400
+        
+        success, message = send_bulk_email(
+            recipients=recipients,
+            subject=data['subject'],
+            body=data['body'],
+            html_body=data.get('html_body')
+        )
+        
+        response = jsonify({
+            'success': success,
+            'message': message,
+            'recipients_count': len(recipients)
+        })
+        return cors_response(response)
+        
+    except Exception as e:
+        response = jsonify({'success': False, 'error': str(e)})
+        return cors_response(response), 500
+
+# --- REPORTERS API ENDPOINTS ---
+
+@app.route('/user/reporter')
+def get_reporters():
+    """Get all reporters from the system"""
+    try:
+        # Try to fetch from external API first
+        import requests
+        
+        # Make request to the actual API
+        api_url = "http://localhost:5000/user/reporter"
+        
+        try:
+            # Try to get data from the external API
+            external_response = requests.get(api_url, timeout=5)
+            if external_response.status_code == 200:
+                external_data = external_response.json()
+                print(f"External API response: {external_data}")
+                
+                # Handle different response structures
+                if 'data' in external_data and 'reporters' in external_data['data']:
+                    # If data is nested under 'data' key
+                    reporters = external_data['data']['reporters']
+                    response = jsonify({
+                        'success': True,
+                        'reporters': reporters,
+                        'count': len(reporters)
+                    })
+                    return cors_response(response)
+                elif 'reporters' in external_data:
+                    # If reporters is directly in response
+                    reporters = external_data['reporters']
+                    response = jsonify({
+                        'success': True,
+                        'reporters': reporters,
+                        'count': len(reporters)
+                    })
+                    return cors_response(response)
+                elif external_data.get('success'):
+                    # If success is true but different structure
+                    response = jsonify(external_data)
+                    return cors_response(response)
+        except requests.exceptions.RequestException as e:
+            print(f"External API not available: {e}")
+        
+        # Fallback: Return empty list if external API is not available
+        response = jsonify({
+            'success': True,
+            'reporters': [],
+            'count': 0,
+            'message': 'No external API available - using fallback'
+        })
+        return cors_response(response)
+        
+    except Exception as e:
+        response = jsonify({'success': False, 'error': str(e)})
+        return cors_response(response), 500
 
 # --- LIVE STREAMING API ENDPOINTS ---
 
