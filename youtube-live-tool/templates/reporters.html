@@ -224,6 +224,15 @@
             gap: 8px;
         }
 
+        .reporter-id {
+            color: #667eea;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 500;
+        }
+
         .status-badge {
             padding: 6px 12px;
             border-radius: 20px;
@@ -312,7 +321,8 @@
 
             .reporter-email,
             .reporter-phone,
-            .reporter-location {
+            .reporter-location,
+            .reporter-id {
                 font-size: 0.8rem;
             }
 
@@ -419,6 +429,7 @@
                             <th>Email</th>
                             <th>Phone</th>
                             <th>Location</th>
+                            <th>IINSAF ID</th>
                             <th>Status</th>
                         </tr>
                     </thead>
@@ -624,8 +635,14 @@
                         </div>
                     </td>
                     <td>
-                        <span class="status-badge status-${reporter.verifiedReporter ? 'active' : 'inactive'}">
-                            ${reporter.verifiedReporter ? 'Verified' : 'Unverified'}
+                        <div class="reporter-id">
+                            <i class="fas fa-id-card table-icon"></i>
+                            ${reporter.idCard && reporter.idCard.iinsafId ? reporter.idCard.iinsafId : 'N/A'}
+                        </div>
+                    </td>
+                    <td>
+                        <span class="status-badge status-${reporter.idCard && reporter.idCard.status === 'Approved' ? 'active' : 'inactive'}">
+                            ${reporter.idCard && reporter.idCard.status === 'Approved' ? 'Verified' : 'Unverified'}
                         </span>
                     </td>
                 </tr>
@@ -637,7 +654,8 @@
 
         function updateStats(reporters) {
             const totalReporters = reporters.length;
-            const verifiedReporters = reporters.filter(r => r.verifiedReporter === true).length;
+            // Check if idCard exists and has status 'Approved' for verified reporters
+            const verifiedReporters = reporters.filter(r => r.idCard && r.idCard.status === 'Approved').length;
             const cities = [...new Set(reporters.map(r => r.city).filter(city => city))].length;
 
             document.getElementById('totalReporters').textContent = totalReporters;
@@ -741,8 +759,8 @@
                         <br>
                         <small style="color: #666;">${reporter.email || 'N/A'}</small>
                     </div>
-                    <span class="status-badge status-${reporter.verifiedReporter ? 'active' : 'inactive'}" style="font-size: 0.7rem;">
-                        ${reporter.verifiedReporter ? 'Verified' : 'Unverified'}
+                    <span class="status-badge status-${reporter.idCard && reporter.idCard.status === 'Approved' ? 'active' : 'inactive'}" style="font-size: 0.7rem;">
+                        ${reporter.idCard && reporter.idCard.status === 'Approved' ? 'Verified' : 'Unverified'}
                     </span>
                 </div>
             `).join('');

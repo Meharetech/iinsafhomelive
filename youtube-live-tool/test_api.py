@@ -7,7 +7,7 @@ import json
 import time
 
 def test_live_api():
-    base_url = "http://localhost:5005"
+    base_url = ""
     
     print("Testing YouTube Live Dashboard API...")
     print("=" * 50)

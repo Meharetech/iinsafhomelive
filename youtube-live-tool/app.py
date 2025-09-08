@@ -1280,12 +1280,15 @@ def send_email_to_reporters():
         # Get all reporters
         try:
             import requests
-            api_url = "http://localhost:5000/user/reporter"
+            api_url = "https://githubtool.xyz/api/public/reporters"
             external_response = requests.get(api_url, timeout=5)
             
             if external_response.status_code == 200:
                 external_data = external_response.json()
-                if 'data' in external_data and 'reporters' in external_data['data']:
+                if 'data' in external_data and isinstance(external_data['data'], list):
+                    # If data is directly a list of reporters
+                    reporters = external_data['data']
+                elif 'data' in external_data and 'reporters' in external_data['data']:
                     reporters = external_data['data']['reporters']
                 elif 'reporters' in external_data:
                     reporters = external_data['reporters']
@@ -1331,7 +1334,7 @@ def get_reporters():
         import requests
         
         # Make request to the actual API
-        api_url = "http://localhost:5000/user/reporter"
+        api_url = "https://githubtool.xyz/api/public/reporters"
         
         try:
             # Try to get data from the external API
@@ -1341,8 +1344,17 @@ def get_reporters():
                 print(f"External API response: {external_data}")
                 
                 # Handle different response structures
-                if 'data' in external_data and 'reporters' in external_data['data']:
-                    # If data is nested under 'data' key
+                if 'data' in external_data and isinstance(external_data['data'], list):
+                    # If data is directly a list of reporters
+                    reporters = external_data['data']
+                    response = jsonify({
+                        'success': True,
+                        'reporters': reporters,
+                        'count': len(reporters)
+                    })
+                    return cors_response(response)
+                elif 'data' in external_data and 'reporters' in external_data['data']:
+                    # If data is nested under 'data' key with reporters
                     reporters = external_data['data']['reporters']
                     response = jsonify({
                         'success': True,
