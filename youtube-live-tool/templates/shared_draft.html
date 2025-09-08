@@ -1,0 +1,1272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Go Live - {{ draft.title }}</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Desktop optimizations */
+        @media (min-width: 1024px) {
+            .container {
+                max-width: 1200px;
+                padding: 30px;
+            }
+
+            .card {
+                border-radius: 25px;
+                box-shadow: 0 25px 80px rgba(0,0,0,0.2);
+            }
+
+            .header {
+                padding: 40px;
+            }
+
+            .title {
+                font-size: 32px;
+            }
+
+            .subtitle {
+                font-size: 18px;
+            }
+
+            .content {
+                padding: 40px;
+            }
+
+            .stream-info {
+                padding: 25px;
+            }
+
+            .stream-title {
+                font-size: 28px;
+                line-height: 1.2;
+            }
+
+            .stream-description {
+                font-size: 18px;
+                line-height: 1.6;
+            }
+
+            .channel-info {
+                padding: 20px;
+            }
+
+            .channel-item {
+                padding: 15px 20px;
+            }
+
+            .channel-name {
+                font-size: 18px;
+            }
+
+            .channel-id {
+                font-size: 14px;
+            }
+
+            .btn {
+                padding: 18px 30px;
+                font-size: 18px;
+            }
+
+            .camera-controls {
+                gap: 20px;
+            }
+
+            .camera-control {
+                padding: 15px 25px;
+            }
+
+            .camera-control i {
+                font-size: 24px;
+            }
+
+            .camera-control span {
+                font-size: 16px;
+            }
+
+            .thumbnail-preview {
+                max-width: 400px;
+                height: 250px;
+            }
+        }
+
+        .card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+            overflow: hidden;
+            width: 100%;
+            position: relative;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            position: relative;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="white" opacity="0.1"/><circle cx="75" cy="75" r="1" fill="white" opacity="0.1"/><circle cx="50" cy="10" r="0.5" fill="white" opacity="0.1"/><circle cx="10" cy="60" r="0.5" fill="white" opacity="0.1"/><circle cx="90" cy="40" r="0.5" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+            opacity: 0.3;
+        }
+
+        .header-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .title {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .subtitle {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+
+        .back-link {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: white;
+            text-decoration: none;
+            font-size: 18px;
+            opacity: 0.8;
+            transition: opacity 0.3s ease;
+        }
+
+        .back-link:hover {
+            opacity: 1;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .draft-info {
+            background: #f8fafc;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            border-left: 4px solid #667eea;
+        }
+
+        .draft-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .draft-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2d3748;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .draft-content {
+            transition: all 0.3s ease;
+        }
+
+        .draft-content.hidden {
+            display: none;
+        }
+
+        .btn-sm {
+            padding: 8px 12px;
+            font-size: 12px;
+            min-width: auto;
+        }
+
+        @media (max-width: 768px) {
+            .draft-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .draft-title {
+                font-size: 20px;
+            }
+
+            .btn-sm {
+                align-self: flex-end;
+            }
+        }
+
+        .draft-description {
+            color: #718096;
+            font-size: 16px;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .draft-thumbnail {
+            width: 100%;
+            max-width: 400px;
+            height: 225px;
+            border-radius: 12px;
+            object-fit: cover;
+            margin: 0 auto;
+            display: block;
+            border: 2px solid #e2e8f0;
+        }
+
+        .channels-info {
+            background: #f0f4ff;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .channels-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .channels-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .channel-tag {
+            background: #667eea;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .permission-status {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-left: 4px solid #667eea;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .status-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .status-icon {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+
+        .status-icon.granted {
+            background: #48bb78;
+            color: white;
+        }
+
+        .status-icon.denied {
+            background: #e53e3e;
+            color: white;
+        }
+
+        .status-icon.pending {
+            background: #f6ad55;
+            color: white;
+        }
+
+        .camera-preview {
+            background: #000;
+            border-radius: 15px;
+            overflow: hidden;
+            margin-bottom: 30px;
+            position: relative;
+        }
+
+        .video-preview {
+            width: 100%;
+            height: 300px;
+            object-fit: cover;
+            background: #111;
+        }
+
+        .camera-overlay {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .camera-controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .camera-btn {
+            flex: 1;
+            min-width: 120px;
+            padding: 12px 20px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            background: white;
+            color: #4a5568;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .camera-btn:hover {
+            border-color: #667eea;
+            color: #667eea;
+        }
+
+        .camera-btn.active {
+            border-color: #667eea;
+            background: #f0f4ff;
+            color: #667eea;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            flex: 1;
+            min-width: 150px;
+            padding: 15px 25px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #48bb78, #38a169);
+            color: white;
+            box-shadow: 0 4px 15px rgba(72, 187, 120, 0.3);
+        }
+
+        .btn-success:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(72, 187, 120, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .live-timer {
+            background: linear-gradient(135deg, #e53e3e, #c53030);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-weight: 600;
+            font-size: 18px;
+            font-family: 'Courier New', monospace;
+            animation: livePulse 2s infinite;
+            box-shadow: 0 4px 15px rgba(229, 62, 62, 0.3);
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        @keyframes livePulse {
+            0% { box-shadow: 0 0 0 0 rgba(229, 62, 62, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(229, 62, 62, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(229, 62, 62, 0); }
+        }
+
+        .live-badge {
+            background: #e53e3e;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 25px;
+            font-size: 14px;
+            font-weight: 600;
+            animation: livePulse 2s infinite;
+            margin-left: 15px;
+        }
+
+        .error-message {
+            background: #fed7d7;
+            border: 2px solid #f56565;
+            border-radius: 12px;
+            padding: 15px;
+            color: #742a2a;
+            font-weight: 600;
+            margin-top: 15px;
+        }
+
+        .success-message {
+            background: #c6f6d5;
+            border: 2px solid #68d391;
+            border-radius: 12px;
+            padding: 15px;
+            color: #22543d;
+            font-weight: 600;
+            margin-top: 15px;
+        }
+
+        .loading {
+            text-align: center;
+            color: #718096;
+            font-size: 16px;
+            padding: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .content {
+                padding: 20px;
+            }
+            
+            .button-group {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .btn {
+                min-width: auto;
+                padding: 12px 20px;
+                font-size: 14px;
+            }
+            
+            .camera-controls {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .stream-info {
+                padding: 15px;
+            }
+
+            .stream-title {
+                font-size: 20px;
+                line-height: 1.2;
+            }
+
+            .stream-description {
+                font-size: 14px;
+                line-height: 1.4;
+            }
+
+            .channel-info {
+                padding: 10px;
+            }
+
+            .channel-item {
+                padding: 8px 12px;
+            }
+
+            .channel-name {
+                font-size: 14px;
+            }
+
+            .channel-id {
+                font-size: 11px;
+            }
+
+            .header {
+                padding: 20px;
+            }
+
+            .title {
+                font-size: 24px;
+            }
+
+            .subtitle {
+                font-size: 14px;
+            }
+
+            .thumbnail-preview {
+                max-width: 100%;
+                height: 150px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 5px;
+            }
+
+            .content {
+                padding: 15px;
+            }
+
+            .stream-info {
+                padding: 12px;
+            }
+
+            .stream-title {
+                font-size: 18px;
+                line-height: 1.1;
+            }
+
+            .stream-description {
+                font-size: 13px;
+                line-height: 1.3;
+            }
+
+            .channel-info {
+                padding: 8px;
+            }
+
+            .channel-item {
+                padding: 6px 10px;
+            }
+
+            .channel-name {
+                font-size: 13px;
+            }
+
+            .channel-id {
+                font-size: 10px;
+            }
+
+            .header {
+                padding: 15px;
+            }
+
+            .title {
+                font-size: 20px;
+            }
+
+            .subtitle {
+                font-size: 12px;
+            }
+
+            .btn {
+                padding: 10px 15px;
+                font-size: 13px;
+            }
+
+            .thumbnail-preview {
+                height: 120px;
+            }
+
+            .camera-controls {
+                gap: 8px;
+            }
+
+            .camera-control {
+                padding: 8px 12px;
+            }
+
+            .camera-control i {
+                font-size: 16px;
+            }
+
+            .camera-control span {
+                font-size: 12px;
+            }
+        }
+
+        /* Hide any unwanted injected dropdowns or form elements */
+        .card select:not(.camera-select):not(.channel-select),
+        .card .dropdown:not(.camera-dropdown):not(.channel-dropdown),
+        .card [role="listbox"]:not(.camera-listbox):not(.channel-listbox),
+        .card [role="combobox"]:not(.camera-combobox):not(.channel-combobox) {
+            display: none !important;
+        }
+
+        /* Ensure our content is properly layered */
+        .card {
+            position: relative;
+            z-index: 1;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <a href="/" class="back-link">
+                <i class="fas fa-arrow-left"></i>
+            </a>
+            
+            <div class="header">
+                <div class="header-content">
+                    <h1 class="title">
+                        <i class="fas fa-broadcast-tower"></i>
+                        Go Live
+                        <span class="live-badge" id="liveBadge" style="display:none;">● LIVE</span>
+                    </h1>
+                    <p class="subtitle">Ready to stream with pre-configured settings</p>
+                </div>
+            </div>
+
+            <div class="content">
+                <!-- Draft Information (Read-only) - Hidden when not streaming -->
+                <div class="draft-info" id="draftInfo" style="display: none;">
+                    <div class="draft-header">
+                        <h2 class="draft-title">
+                            <i class="fas fa-info-circle"></i>
+                            {{ draft.title }}
+                        </h2>
+                        <button class="btn btn-sm btn-secondary" id="toggleDraftInfoBtn" title="Hide/Show Details">
+                            <i class="fas fa-eye-slash"></i>
+                        </button>
+                    </div>
+                    <div class="draft-content" id="draftContent">
+                        <p class="draft-description">{{ draft.description }}</p>
+                        {% if draft.thumbnail_filename %}
+                        <img src="/uploads/{{ draft.thumbnail_filename }}" class="draft-thumbnail" alt="Stream Thumbnail">
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Channels Information -->
+                <div class="channels-info">
+                    <h3 class="channels-title">
+                        <i class="fas fa-users"></i>
+                        Streaming to {{ draft.selected_channels|length }} channel(s)
+                    </h3>
+                    <!-- Channel names list removed - only showing count -->
+                </div>
+
+                <!-- Camera Setup -->
+                <div id="cameraSetup">
+                    <div class="permission-status" id="permissionStatus">
+                        <div class="status-item">
+                            <div class="status-icon pending" id="cameraStatus">
+                                <i class="fas fa-clock"></i>
+                            </div>
+                            <span>Camera Permission: <span id="cameraStatusText">Pending</span></span>
+                        </div>
+                        <div class="status-item">
+                            <div class="status-icon pending" id="microphoneStatus">
+                                <i class="fas fa-clock"></i>
+                            </div>
+                            <span>Microphone Permission: <span id="microphoneStatusText">Pending</span></span>
+                        </div>
+                    </div>
+                    
+                    <div class="camera-preview" id="cameraPreview" style="display:none;">
+                        <video id="preview" class="video-preview" autoplay muted playsinline></video>
+                        <div class="camera-overlay">
+                            <i class="fas fa-camera"></i>
+                            Camera Preview
+                        </div>
+                    </div>
+                    
+                    <div class="camera-controls" id="cameraControls" style="display:none;">
+                        <button class="camera-btn" id="frontCameraBtn">
+                            <i class="fas fa-mobile-alt"></i>
+                            Front Camera
+                        </button>
+                        <button class="camera-btn" id="backCameraBtn">
+                            <i class="fas fa-camera"></i>
+                            Back Camera
+                        </button>
+                    </div>
+                    
+                    <div class="button-group">
+                        <button class="btn btn-primary" id="requestPermissionsBtn">
+                            <i class="fas fa-key"></i>
+                            Allow Camera & Microphone Access
+                        </button>
+                        <button class="btn btn-success" id="startStreamingBtn" style="display:none;">
+                            <i class="fas fa-play"></i>
+                            Go Live Now
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Live Streaming (Hidden initially) -->
+                <div id="liveStreaming" style="display:none;">
+                    <div class="live-timer" id="liveTimer">00:00:00</div>
+                    
+                    <div class="camera-preview">
+                        <video id="livePreview" class="video-preview" autoplay muted playsinline></video>
+                        <div class="camera-overlay">
+                            <i class="fas fa-circle" style="color: #e53e3e;"></i>
+                            Live Stream
+                        </div>
+                    </div>
+                    
+                    <div id="liveUrls" style="margin-bottom: 20px;"></div>
+                    
+                    <div class="button-group">
+                        <button class="btn btn-primary" id="stopStreamingBtn">
+                            <i class="fas fa-stop"></i>
+                            Stop Streaming
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let mediaRecorder, stream;
+        let isStreaming = false;
+        let liveTimerInterval;
+        let viewerPollInterval;
+        let aggressivePollingInterval;
+        let streamStartTime;
+        let currentCamera = 'user';
+        let currentSessionId = null;
+
+        // Draft data from server
+        const draftData = {
+            title: "{{ draft.title|e }}",
+            description: "{{ draft.description|e }}",
+            selectedChannels: JSON.parse('{{ draft.selected_channels | tojson | e }}'),
+            thumbnailFilename: "{{ draft.thumbnail_filename or ''|e }}"
+        };
+
+        // DOM elements
+        const cameraSetup = document.getElementById('cameraSetup');
+        const liveStreaming = document.getElementById('liveStreaming');
+        const liveBadge = document.getElementById('liveBadge');
+        const liveTimer = document.getElementById('liveTimer');
+        const liveUrls = document.getElementById('liveUrls');
+        const preview = document.getElementById('preview');
+        const livePreview = document.getElementById('livePreview');
+        const frontCameraBtn = document.getElementById('frontCameraBtn');
+        const backCameraBtn = document.getElementById('backCameraBtn');
+        const requestPermissionsBtn = document.getElementById('requestPermissionsBtn');
+        const startStreamingBtn = document.getElementById('startStreamingBtn');
+        const stopStreamingBtn = document.getElementById('stopStreamingBtn');
+        const cameraStatus = document.getElementById('cameraStatus');
+        const cameraStatusText = document.getElementById('cameraStatusText');
+        const microphoneStatus = document.getElementById('microphoneStatus');
+        const microphoneStatusText = document.getElementById('microphoneStatusText');
+        const cameraPreview = document.getElementById('cameraPreview');
+        const cameraControls = document.getElementById('cameraControls');
+        const draftInfo = document.getElementById('draftInfo');
+        const draftContent = document.getElementById('draftContent');
+        const toggleDraftInfoBtn = document.getElementById('toggleDraftInfoBtn');
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeEventListeners();
+            cleanupInjectedContent();
+        });
+
+        function cleanupInjectedContent() {
+            // Remove any unwanted injected elements
+            const unwantedSelectors = [
+                'select:not(.camera-select):not(.channel-select)',
+                '.dropdown:not(.camera-dropdown):not(.channel-dropdown)',
+                '[role="listbox"]:not(.camera-listbox):not(.channel-listbox)',
+                '[role="combobox"]:not(.camera-combobox):not(.channel-combobox)',
+                'option[value*="career"]',
+                'option[value*="Career"]',
+                'option[value*="reporter"]',
+                'option[value*="advertiser"]',
+                'option[value*="marketer"]',
+                'option[value*="influencer"]',
+                'option[value*="lawyer"]'
+            ];
+            
+            unwantedSelectors.forEach(selector => {
+                const elements = document.querySelectorAll(selector);
+                elements.forEach(element => {
+                    if (element.closest('.card')) {
+                        element.remove();
+                    }
+                });
+            });
+        }
+
+        // Set up periodic cleanup to catch any content injected after page load
+        setInterval(cleanupInjectedContent, 2000);
+
+        function initializeEventListeners() {
+            requestPermissionsBtn.addEventListener('click', requestPermissions);
+            startStreamingBtn.addEventListener('click', startStreaming);
+            stopStreamingBtn.addEventListener('click', stopStreaming);
+            frontCameraBtn.addEventListener('click', () => switchCamera('user'));
+            backCameraBtn.addEventListener('click', () => switchCamera('environment'));
+            toggleDraftInfoBtn.addEventListener('click', toggleDraftInfo);
+        }
+
+        function toggleDraftInfo() {
+            const isHidden = draftContent.classList.contains('hidden');
+            const icon = toggleDraftInfoBtn.querySelector('i');
+            
+            if (isHidden) {
+                // Show content
+                draftContent.classList.remove('hidden');
+                icon.className = 'fas fa-eye-slash';
+                toggleDraftInfoBtn.title = 'Hide Details';
+            } else {
+                // Hide content
+                draftContent.classList.add('hidden');
+                icon.className = 'fas fa-eye';
+                toggleDraftInfoBtn.title = 'Show Details';
+            }
+        }
+
+        async function requestPermissions() {
+            try {
+                // Request camera and microphone access
+                stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: currentCamera }, 
+                    audio: true 
+                });
+                
+                // Update permission status
+                cameraStatus.className = 'status-icon granted';
+                cameraStatus.innerHTML = '<i class="fas fa-check"></i>';
+                cameraStatusText.textContent = 'Granted';
+                
+                microphoneStatus.className = 'status-icon granted';
+                microphoneStatus.innerHTML = '<i class="fas fa-check"></i>';
+                microphoneStatusText.textContent = 'Granted';
+                
+                // Show camera preview and controls
+                preview.srcObject = stream;
+                cameraPreview.style.display = 'block';
+                cameraControls.style.display = 'flex';
+                
+                // Show start streaming button
+                requestPermissionsBtn.style.display = 'none';
+                startStreamingBtn.style.display = 'flex';
+                
+            } catch (error) {
+                console.error('Error accessing media devices:', error);
+                
+                // Update permission status to denied
+                cameraStatus.className = 'status-icon denied';
+                cameraStatus.innerHTML = '<i class="fas fa-times"></i>';
+                cameraStatusText.textContent = 'Denied';
+                
+                microphoneStatus.className = 'status-icon denied';
+                microphoneStatus.innerHTML = '<i class="fas fa-times"></i>';
+                microphoneStatusText.textContent = 'Denied';
+                
+                alert('Camera and microphone access is required to stream. Please allow access and try again.');
+            }
+        }
+
+        function switchCamera(facingMode) {
+            if (stream) {
+                // Stop current stream
+                stream.getTracks().forEach(track => track.stop());
+            }
+            
+            currentCamera = facingMode;
+            
+            // Update button states
+            frontCameraBtn.classList.toggle('active', facingMode === 'user');
+            backCameraBtn.classList.toggle('active', facingMode === 'environment');
+            
+            // Request new stream
+            navigator.mediaDevices.getUserMedia({ 
+                video: { facingMode: facingMode }, 
+                audio: true 
+            }).then(newStream => {
+                stream = newStream;
+                preview.srcObject = stream;
+            }).catch(error => {
+                console.error('Error switching camera:', error);
+            });
+        }
+
+        async function startStreaming() {
+            if (!stream) {
+                alert('Please allow camera and microphone access first');
+                return;
+            }
+            
+            try {
+                // Show live badge and timer
+                liveBadge.style.display = 'inline-block';
+                liveTimer.style.display = 'block';
+                
+                // Show draft information when streaming
+                draftInfo.style.display = 'block';
+                
+                // Copy stream to live preview
+                livePreview.srcObject = stream;
+                
+                // Switch to live streaming view
+                cameraSetup.style.display = 'none';
+                liveStreaming.style.display = 'block';
+                
+                // Create history session
+                const sessionData = {
+                    start_time: new Date().toISOString(),
+                    title: draftData.title,
+                    description: draftData.description,
+                    channels_used: draftData.selectedChannels,
+                    thumbnail_filename: draftData.thumbnailFilename || null,
+                    status: 'streaming'
+                };
+                
+                // Add session to history
+                try {
+                    const historyResponse = await fetch('/add_stream_session', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(sessionData)
+                    });
+                    
+                    const historyResult = await historyResponse.json();
+                    if (historyResult.success) {
+                        currentSessionId = historyResult.session_id;
+                    }
+                } catch (error) {
+                    console.error('Error creating history session:', error);
+                }
+                
+                // Create form data for stream creation
+                let formData = new FormData();
+                formData.append('title', draftData.title);
+                formData.append('description', draftData.description);
+                formData.append('selected_channels', JSON.stringify(draftData.selectedChannels));
+                
+                // Add thumbnail if available
+                if (draftData.thumbnailFilename) {
+                    // Show thumbnail processing message
+                    const thumbnailStatus = document.createElement('div');
+                    thumbnailStatus.style.cssText = `
+                        position: fixed;
+                        top: 20px;
+                        right: 20px;
+                        background: #667eea;
+                        color: white;
+                        padding: 12px 20px;
+                        border-radius: 8px;
+                        font-weight: 600;
+                        z-index: 1000;
+                        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+                    `;
+                    thumbnailStatus.innerHTML = '<i class="fas fa-image"></i> Processing thumbnail...';
+                    document.body.appendChild(thumbnailStatus);
+                    
+                    // Fetch the thumbnail file and add it to form data
+                    try {
+                        const thumbnailResponse = await fetch(`/uploads/${draftData.thumbnailFilename}`);
+                        if (thumbnailResponse.ok) {
+                            const thumbnailBlob = await thumbnailResponse.blob();
+                            formData.append('thumbnail', thumbnailBlob, draftData.thumbnailFilename);
+                            
+                            // Update status
+                            thumbnailStatus.innerHTML = '<i class="fas fa-check"></i> Thumbnail ready!';
+                            thumbnailStatus.style.background = '#48bb78';
+                        } else {
+                            thumbnailStatus.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Thumbnail not found';
+                            thumbnailStatus.style.background = '#f6ad55';
+                        }
+                    } catch (error) {
+                        console.warn('Could not load thumbnail:', error);
+                        thumbnailStatus.innerHTML = '<i class="fas fa-times"></i> Thumbnail error';
+                        thumbnailStatus.style.background = '#e53e3e';
+                    }
+                    
+                    // Remove status after 3 seconds
+                    setTimeout(() => {
+                        if (thumbnailStatus.parentNode) {
+                            thumbnailStatus.parentNode.removeChild(thumbnailStatus);
+                        }
+                    }, 3000);
+                }
+                
+                // Create streams
+                let resp = await fetch('/shared_draft_create_stream', { method: 'POST', body: formData });
+                let result = await resp.json();
+                
+                if (result.error) {
+                    throw new Error(result.error);
+                }
+                
+                // Start media recording
+                mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm; codecs=vp8,opus' });
+                isStreaming = true;
+                
+                mediaRecorder.ondataavailable = async function(e) {
+                    if (e.data.size > 0 && isStreaming) {
+                        const chunkForm = new FormData();
+                        chunkForm.append('chunk', e.data);
+                        await fetch('/multi_instant_upload_stream', { method: 'POST', body: chunkForm });
+                    }
+                };
+                
+                mediaRecorder.start(1000);
+
+                // Go live
+                let liveResp = await fetch('/multi_instant_go_live', { method: 'POST' });
+                let liveData = await liveResp.json();
+
+                // Display live URLs
+                if (liveData.live_urls && Object.keys(liveData.live_urls).length > 0) {
+                    let statusHtml = '<h4>Live Channels:</h4>';
+                    for (const [cid, url] of Object.entries(liveData.live_urls)) {
+                        statusHtml += `<div style="margin-bottom: 10px; padding: 10px; background: #f0f4ff; border-radius: 8px;" data-channel-id="${cid}">
+                            <strong>${cid}</strong><br>
+                            <a href="${url}" target="_blank" style="color: #667eea;">${url}</a>
+                            <span class="viewer-count" style="color: #48bb78; font-weight: bold; margin-left: 10px;">● Live</span>
+                        </div>`;
+                    }
+                    liveUrls.innerHTML = statusHtml;
+                    
+                    // Start timer
+                    startLiveTimer();
+                    
+                    // Start viewer polling
+                    startViewerPolling();
+                }
+                
+                if (liveData.errors) {
+                    let errorHtml = '<h4>Errors:</h4>';
+                    for (const [cid, msg] of Object.entries(liveData.errors)) {
+                        errorHtml += `<div style="margin-bottom: 10px; padding: 10px; background: #fed7d7; border-radius: 8px; color: #742a2a;">
+                            <strong>${cid}</strong>: ${msg}
+                        </div>`;
+                    }
+                    liveUrls.innerHTML += errorHtml;
+                }
+                
+            } catch (error) {
+                console.error('Error starting stream:', error);
+                alert('Error starting stream: ' + error.message);
+                // Switch back to camera setup
+                cameraSetup.style.display = 'block';
+                liveStreaming.style.display = 'none';
+            }
+        }
+
+        function startLiveTimer() {
+            streamStartTime = Date.now();
+            function updateTimer() {
+                const elapsed = Math.floor((Date.now() - streamStartTime) / 1000);
+                const h = String(Math.floor(elapsed/3600)).padStart(2,'0');
+                const m = String(Math.floor((elapsed%3600)/60)).padStart(2,'0');
+                const s = String(elapsed%60).padStart(2,'0');
+                liveTimer.textContent = `${h}:${m}:${s}`;
+            }
+            updateTimer();
+            liveTimerInterval = setInterval(updateTimer, 1000);
+        }
+
+        function startViewerPolling() {
+            if (viewerPollInterval) clearInterval(viewerPollInterval);
+            if (aggressivePollingInterval) clearInterval(aggressivePollingInterval);
+            
+            // Immediate first poll
+            pollViewers();
+            
+            // Aggressive polling for first 2 minutes (every 1 second)
+            aggressivePollingInterval = setInterval(() => {
+                pollViewers();
+                // Switch to normal polling after 2 minutes
+                if (Date.now() - streamStartTime > 120000) {
+                    clearInterval(aggressivePollingInterval);
+                    aggressivePollingInterval = null;
+                    viewerPollInterval = setInterval(pollViewers, 2000);
+                }
+            }, 1000);
+            
+            // Fallback normal polling (every 2 seconds)
+            viewerPollInterval = setInterval(pollViewers, 2000);
+        }
+
+        async function pollViewers() {
+            try {
+                let resp = await fetch('/multi_instant_viewers');
+                let data = await resp.json();
+                
+                // Update viewer counts in live URLs section
+                for (const [cid, viewers] of Object.entries(data)) {
+                    const channelDiv = liveUrls.querySelector(`[data-channel-id="${cid}"]`);
+                    if (channelDiv) {
+                        const viewerSpan = channelDiv.querySelector('.viewer-count');
+                        if (viewerSpan) {
+                            if (viewers === null) {
+                                viewerSpan.innerHTML = '<span style="color:#f6ad55;">⏳ Loading...</span>';
+                            } else {
+                                viewerSpan.innerHTML = `<span style="color:#48bb78;font-weight:bold;">👥 ${viewers}</span>`;
+                            }
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error fetching viewer counts:', error);
+            }
+        }
+
+        async function stopStreaming() {
+            isStreaming = false;
+            
+            // Stop media recording
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+            }
+            
+            // Stop camera stream
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+            
+            // Stop backend streaming
+            fetch('/multi_instant_stop_stream', { method: 'POST' });
+            
+            // Update history session with end time and duration
+            if (currentSessionId) {
+                const endTime = new Date().toISOString();
+                const duration = liveTimer.textContent || '00:00:00';
+                
+                try {
+                    await fetch(`/update_stream_session/${currentSessionId}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            end_time: endTime,
+                            duration: duration,
+                            status: 'completed',
+                            live_urls: getCurrentLiveUrls(),
+                            viewer_stats: getCurrentViewerStats()
+                        })
+                    });
+                } catch (error) {
+                    console.error('Error updating history session:', error);
+                }
+                
+                currentSessionId = null;
+            }
+            
+            // Clear intervals
+            if (liveTimerInterval) clearInterval(liveTimerInterval);
+            if (viewerPollInterval) clearInterval(viewerPollInterval);
+            if (aggressivePollingInterval) clearInterval(aggressivePollingInterval);
+            
+            // Reset UI
+            liveBadge.style.display = 'none';
+            liveTimer.style.display = 'none';
+            liveTimer.textContent = '00:00:00';
+            liveUrls.innerHTML = '';
+            
+            // Hide draft information when not streaming
+            draftInfo.style.display = 'none';
+            
+            // Switch back to camera setup
+            cameraSetup.style.display = 'block';
+            liveStreaming.style.display = 'none';
+        }
+
+        // Helper functions for history tracking
+        function getCurrentLiveUrls() {
+            const urls = {};
+            const urlElements = liveUrls.querySelectorAll('a[href*="youtube.com"]');
+            urlElements.forEach(link => {
+                const channelId = link.closest('[data-channel-id]')?.getAttribute('data-channel-id');
+                if (channelId) {
+                    urls[channelId] = link.href;
+                }
+            });
+            return urls;
+        }
+
+        function getCurrentViewerStats() {
+            const stats = {};
+            const viewerElements = liveUrls.querySelectorAll('.viewer-count');
+            viewerElements.forEach(element => {
+                const channelId = element.closest('[data-channel-id]')?.getAttribute('data-channel-id');
+                const viewerText = element.textContent;
+                const viewerCount = viewerText.match(/\d+/);
+                if (channelId && viewerCount) {
+                    stats[channelId] = parseInt(viewerCount[0]);
+                }
+            });
+            return stats;
+        }
+    </script>
+</body>
+</html>

@@ -9,9 +9,24 @@ from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
 from google.auth.exceptions import RefreshError
+from functools import wraps
 
 app = Flask(__name__)
 app.secret_key = 'your-secure-secret-key-here'  # Change this to a secure secret key
+
+# Authentication credentials
+VALID_CREDENTIALS = {
+    'user': '1234567890'
+}
+
+# Authentication decorator
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not session.get('logged_in'):
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
 
 # OAuth 2.0 Configuration
 SCOPES = ['https://www.googleapis.com/auth/youtube.force-ssl']
@@ -82,7 +97,9 @@ def save_draft(draft_id, draft_data):
     drafts[draft_id] = {
         **draft_data,
         'created_at': datetime.utcnow().isoformat(),
-        'updated_at': datetime.utcnow().isoformat()
+        'updated_at': datetime.utcnow().isoformat(),
+        'is_shared': draft_data.get('is_shared', False),
+        'share_token': draft_data.get('share_token', None)
     }
     save_drafts(drafts)
     return draft_id
@@ -98,6 +115,19 @@ def delete_draft(draft_id):
         save_drafts(drafts)
         return True
     return False
+
+def get_draft_by_share_token(share_token):
+    """Get draft by share token for shared access"""
+    drafts = load_drafts()
+    for draft_id, draft_data in drafts.items():
+        if draft_data.get('share_token') == share_token:
+            return draft_id, draft_data
+    return None, None
+
+def generate_share_token():
+    """Generate a unique share token for draft sharing"""
+    import secrets
+    return secrets.token_urlsafe(16)
 
 # --- Stream History Management Functions ---
 def load_history():
@@ -221,7 +251,54 @@ def get_user_info(youtube):
         return name, email
     return 'Unknown', 'Unknown'
 
+# Authentication routes
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'GET':
+        # If already logged in, redirect to dashboard
+        if session.get('logged_in'):
+            return redirect(url_for('index'))
+        return render_template('login.html')
+    
+    elif request.method == 'POST':
+        data = request.get_json()
+        username = data.get('username', '').strip()
+        password = data.get('password', '').strip()
+        
+        # Check credentials
+        if username in VALID_CREDENTIALS and VALID_CREDENTIALS[username] == password:
+            session['logged_in'] = True
+            session['username'] = username
+            return jsonify({'success': True, 'message': 'Login successful'})
+        else:
+            return jsonify({'success': False, 'message': 'Invalid username or password'}), 401
+
+@app.route('/logout')
+def logout():
+    # Revoke the current user's token and reset their session
+    if 'credentials' in session:
+        try:
+            creds = Credentials(**session['credentials'])
+            revoke = Request()
+            revoke.url = 'https://oauth2.googleapis.com/revoke'
+            revoke.data = {'token': creds.token}
+            revoke.headers['Content-type'] = 'application/x-www-form-urlencoded'
+            revoke.method = 'POST'
+            revoke.execute()
+        except Exception as e:
+            print(f"Error revoking token: {e}")
+    
+    # Clear session
+    session.clear()
+    
+    # Delete token file if it exists
+    if os.path.exists(TOKEN_FILE):
+        os.remove(TOKEN_FILE)
+    
+    return redirect(url_for('login'))
+
 @app.route('/')
+@login_required
 def index():
     tokens = load_all_tokens()
     current_channel_id = session.get('current_channel_id')
@@ -262,6 +339,7 @@ def index():
 
 
 @app.route('/switch_account/<channel_id>')
+@login_required
 def switch_account(channel_id):
     tokens = load_all_tokens()
     if channel_id in tokens:
@@ -269,7 +347,32 @@ def switch_account(channel_id):
     return redirect(url_for('index'))
 
 @app.route('/authorize')
+@login_required
 def authorize():
+    """Render the authorization form page"""
+    return render_template('authorize.html')
+
+@app.route('/save_user_info', methods=['POST'])
+def save_user_info():
+    """Save user information before authorization"""
+    try:
+        data = request.get_json()
+        user_info = {
+            'name': data.get('name', '').strip(),
+            'email': data.get('email', '').strip(),
+            'phone': data.get('phone', '').strip()
+        }
+        
+        # Store in session
+        session['user_info'] = user_info
+        
+        return jsonify({'success': True, 'message': 'User information saved successfully'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Error saving user information: {str(e)}'}), 500
+
+@app.route('/authorize_oauth')
+def authorize_oauth():
+    """Handle the actual OAuth authorization"""
     try:
         # Check if client_secrets.json exists
         if not os.path.exists(CLIENT_SECRETS_FILE):
@@ -323,20 +426,30 @@ def oauth2callback():
         if channels_response['items']:
             channel_id = channels_response['items'][0]['id']
             snippet = channels_response['items'][0]['snippet']
-            session['user_name'] = snippet.get('title', 'Unknown')
-            session['user_email'] = 'Unknown'  # Not available from YouTube API
+            
+            # Get user info from session if available
+            user_info = session.get('user_info', {})
+            
+            session['user_name'] = user_info.get('name', snippet.get('title', 'Unknown'))
+            session['user_email'] = user_info.get('email', 'Unknown')
+            session['user_phone'] = user_info.get('phone', 'Unknown')
             session['current_channel_id'] = channel_id
         else:
             channel_id = None
-            session['user_name'] = 'Unknown'
-            session['user_email'] = 'Unknown'
+            user_info = session.get('user_info', {})
+            session['user_name'] = user_info.get('name', 'Unknown')
+            session['user_email'] = user_info.get('email', 'Unknown')
+            session['user_phone'] = user_info.get('phone', 'Unknown')
             session['current_channel_id'] = None
         # Save credentials to token.json under channel_id
         if channel_id:
             tokens = load_all_tokens()
             tokens[channel_id] = {
                 "creds": credentials_to_dict(creds),
-                "channel_name": snippet.get("title", "Unknown")
+                "channel_name": snippet.get("title", "Unknown"),
+                "user_name": user_info.get('name', 'Unknown'),
+                "user_email": user_info.get('email', 'Unknown'),
+                "user_phone": user_info.get('phone', 'Unknown')
             }
             save_all_tokens(tokens)
         return redirect(url_for('index'))
@@ -434,29 +547,7 @@ def create_live_event():
         return f'An error occurred: {str(e)}'
 
 
-@app.route('/logout')
-def logout():
-    # Revoke the current user's token and reset their session
-    if 'credentials' in session:
-        try:
-            creds = Credentials(**session['credentials'])
-            revoke = Request()
-            revoke.url = 'https://oauth2.googleapis.com/revoke'
-            revoke.data = {'token': creds.token}
-            revoke.headers['Content-type'] = 'application/x-www-form-urlencoded'
-            revoke.method = 'POST'
-            revoke.execute()
-        except Exception as e:
-            print(f"Error revoking token: {e}")
-    
-    # Clear session
-    session.clear()
-    
-    # Delete token file if it exists
-    if os.path.exists(TOKEN_FILE):
-        os.remove(TOKEN_FILE)
-    
-    return redirect(url_for('index'))
+# Remove the old logout route as we have a new one above
 
 import tempfile
 from flask import send_from_directory
@@ -519,6 +610,7 @@ def upload_stream():
 from flask import send_file
 
 @app.route('/instant_go_live')
+@login_required
 def instant_go_live():
     tokens = load_all_tokens()
     current_channel_id = session.get('current_channel_id')
@@ -685,8 +777,10 @@ from flask import send_file
 multi_ffmpeg_processes = {}
 multi_ffmpeg_stdin = {}
 multi_rtmp_info = {}
+multi_broadcast_ids = {}
 
 @app.route('/multi_instant_go_live')
+@login_required
 def multi_instant_go_live():
     tokens = load_all_tokens()
     if not tokens:
@@ -701,6 +795,123 @@ def multi_instant_channel_list():
         name = entry.get('channel_name') if isinstance(entry, dict) else cid
         channels.append({'channel_id': cid, 'channel_name': name})
     return jsonify({'channels': channels})
+
+@app.route('/shared_draft_create_stream', methods=['POST'])
+def shared_draft_create_stream():
+    """Create stream from shared draft with thumbnail support"""
+    tokens = load_all_tokens()
+    live_urls = {}
+    rtmp_info = {}
+    broadcast_ids = {}
+    errors = {}
+
+    # Get meta fields from form data
+    title = request.form.get('title') or 'Shared Draft Stream'
+    description = request.form.get('description') or 'Live stream from shared draft'
+    thumbnail_file = request.files.get('thumbnail')
+    thumbnail_bytes = thumbnail_file.read() if thumbnail_file else None
+
+    # Get selected channel IDs from frontend
+    selected_channels = request.form.get('selected_channels')
+    if selected_channels:
+        try:
+            selected_channels = set(json.loads(selected_channels))
+        except Exception:
+            selected_channels = set(tokens.keys())
+    else:
+        selected_channels = set(tokens.keys())
+
+    for channel_id, creds_data in tokens.items():
+        if channel_id not in selected_channels:
+            continue
+        try:
+            youtube = get_authenticated_service(channel_id)
+            user_name = channel_id
+            start_time = (datetime.utcnow()).isoformat() + 'Z'
+            end_time = (datetime.utcnow() + timedelta(hours=2)).isoformat() + 'Z'
+            # Create stream
+            stream = youtube.liveStreams().insert(
+                part="snippet,cdn",
+                body={
+                    "snippet": {"title": title},
+                    "cdn": {
+                        "frameRate": "30fps",
+                        "resolution": "720p",
+                        "ingestionType": "rtmp"
+                    }
+                }
+            ).execute()
+            stream_id = stream['id']
+            ingestion_info = stream['cdn']['ingestionInfo']
+            rtmp_url = ingestion_info['ingestionAddress']
+            stream_key = ingestion_info['streamName']
+            # Create broadcast
+            broadcast = youtube.liveBroadcasts().insert(
+                part="snippet,status,contentDetails",
+                body={
+                    "snippet": {
+                        "title": title,
+                        "description": description,
+                        "scheduledStartTime": start_time,
+                        "scheduledEndTime": end_time
+                    },
+                    "status": {
+                        "privacyStatus": "public",
+                        "selfDeclaredMadeForKids": False
+                    },
+                    "contentDetails": {
+                        "enableAutoStart": True,
+                        "enableAutoStop": True
+                    }
+                }
+            ).execute()
+            broadcast_id = broadcast['id']
+            # Bind
+            youtube.liveBroadcasts().bind(
+                part="id,contentDetails",
+                id=broadcast_id,
+                streamId=stream_id
+            ).execute()
+            # Set thumbnail if provided
+            if thumbnail_bytes:
+                import io
+                from googleapiclient.http import MediaIoBaseUpload
+                from googleapiclient.errors import HttpError
+                
+                # Check file size (2MB limit)
+                if len(thumbnail_bytes) > 2 * 1024 * 1024:
+                    errors[channel_id] = f"Thumbnail too large: {len(thumbnail_bytes)/1024/1024:.2f}MB (max 2MB)"
+                    continue
+                
+                try:
+                    mimetype = thumbnail_file.mimetype or 'image/jpeg'
+                    media = MediaIoBaseUpload(io.BytesIO(thumbnail_bytes), mimetype=mimetype)
+                    youtube.thumbnails().set(
+                        videoId=broadcast_id,
+                        media_body=media
+                    ).execute()
+                except HttpError as e:
+                    error_content = e.content.decode() if hasattr(e, 'content') and isinstance(e.content, bytes) else str(e)
+                    if 'Media larger than' in error_content:
+                        errors[channel_id] = f"Thumbnail too large for YouTube (max 2MB). Current: {len(thumbnail_bytes)/1024/1024:.2f}MB"
+                    else:
+                        errors[channel_id] = f"Thumbnail upload failed: {error_content}"
+                    continue
+                except Exception as e:
+                    errors[channel_id] = f"Thumbnail upload error: {str(e)}"
+                    continue
+            rtmp_info[channel_id] = {'rtmp_url': rtmp_url, 'stream_key': stream_key}
+            broadcast_ids[channel_id] = broadcast_id
+        except Exception as e:
+            errors[channel_id] = str(e)
+    global multi_rtmp_info, multi_broadcast_ids
+    multi_rtmp_info = rtmp_info
+    multi_broadcast_ids = broadcast_ids
+    if errors:
+        # Format errors as a readable string for the frontend
+        error_str = '<br>'.join([f"<b>{cid}</b>: {msg}" for cid, msg in errors.items()])
+        return jsonify({'error': error_str})
+    return jsonify({})
 
 @app.route('/multi_instant_create_stream', methods=['POST'])
 def multi_instant_create_stream():
@@ -927,8 +1138,210 @@ def multi_instant_stop_stream():
 
 # --- MULTI-CHANNEL INSTANT GO LIVE FEATURE END ---
 
+# --- LIVE STREAMING API ENDPOINTS ---
+
+@app.route('/api/live/status')
+@login_required
+def get_live_status():
+    """Get overall live streaming status"""
+    try:
+        tokens = load_all_tokens()
+        live_channels = []
+        total_viewers = 0
+        
+        for channel_id in tokens.keys():
+            broadcast_id = multi_broadcast_ids.get(channel_id)
+            if broadcast_id:
+                try:
+                    youtube = get_authenticated_service(channel_id)
+                    resp = youtube.liveBroadcasts().list(
+                        part="snippet,status,statistics",
+                        id=broadcast_id
+                    ).execute()
+                    
+                    items = resp.get('items', [])
+                    if items:
+                        item = items[0]
+                        status = item.get('status', {})
+                        snippet = item.get('snippet', {})
+                        statistics = item.get('statistics', {})
+                        
+                        if status.get('lifeCycleStatus') == 'live':
+                            viewers = int(statistics.get('concurrentViewers', 0))
+                            total_viewers += viewers
+                            
+                            live_channels.append({
+                                'channel_id': channel_id,
+                                'broadcast_id': broadcast_id,
+                                'title': snippet.get('title', ''),
+                                'viewers': viewers,
+                                'live_url': f"https://www.youtube.com/watch?v={broadcast_id}",
+                                'status': 'live'
+                            })
+                except Exception as e:
+                    print(f"Error getting status for channel {channel_id}: {e}")
+        
+        return jsonify({
+            'success': True,
+            'is_live': len(live_channels) > 0,
+            'total_viewers': total_viewers,
+            'live_channels': live_channels,
+            'total_channels': len(live_channels)
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/live/channels')
+@login_required
+def get_live_channels():
+    """Get all live channel URLs and basic info"""
+    try:
+        tokens = load_all_tokens()
+        live_channels = []
+        
+        for channel_id in tokens.keys():
+            broadcast_id = multi_broadcast_ids.get(channel_id)
+            if broadcast_id:
+                try:
+                    youtube = get_authenticated_service(channel_id)
+                    resp = youtube.liveBroadcasts().list(
+                        part="snippet,status",
+                        id=broadcast_id
+                    ).execute()
+                    
+                    items = resp.get('items', [])
+                    if items:
+                        item = items[0]
+                        status = item.get('status', {})
+                        snippet = item.get('snippet', {})
+                        
+                        if status.get('lifeCycleStatus') == 'live':
+                            live_channels.append({
+                                'channel_id': channel_id,
+                                'broadcast_id': broadcast_id,
+                                'title': snippet.get('title', ''),
+                                'live_url': f"https://www.youtube.com/watch?v={broadcast_id}",
+                                'status': 'live'
+                            })
+                except Exception as e:
+                    print(f"Error getting channel info for {channel_id}: {e}")
+        
+        return jsonify({
+            'success': True,
+            'live_channels': live_channels,
+            'count': len(live_channels)
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/live/viewers')
+@login_required
+def get_live_viewers():
+    """Get viewer counts for all live channels"""
+    try:
+        tokens = load_all_tokens()
+        viewer_data = {}
+        total_viewers = 0
+        
+        for channel_id in tokens.keys():
+            broadcast_id = multi_broadcast_ids.get(channel_id)
+            if broadcast_id:
+                try:
+                    youtube = get_authenticated_service(channel_id)
+                    resp = youtube.liveBroadcasts().list(
+                        part="status,statistics",
+                        id=broadcast_id
+                    ).execute()
+                    
+                    items = resp.get('items', [])
+                    if items:
+                        item = items[0]
+                        status = item.get('status', {})
+                        statistics = item.get('statistics', {})
+                        
+                        if status.get('lifeCycleStatus') == 'live':
+                            viewers = int(statistics.get('concurrentViewers', 0))
+                            total_viewers += viewers
+                            viewer_data[channel_id] = {
+                                'viewers': viewers,
+                                'status': 'live'
+                            }
+                        else:
+                            viewer_data[channel_id] = {
+                                'viewers': 0,
+                                'status': 'offline'
+                            }
+                except Exception as e:
+                    print(f"Error getting viewers for channel {channel_id}: {e}")
+                    viewer_data[channel_id] = {
+                        'viewers': None,
+                        'status': 'error'
+                    }
+        
+        return jsonify({
+            'success': True,
+            'viewer_data': viewer_data,
+            'total_viewers': total_viewers,
+            'live_channels': len([v for v in viewer_data.values() if v['status'] == 'live'])
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/live/channel/<channel_id>')
+@login_required
+def get_channel_details(channel_id):
+    """Get detailed info for a specific channel"""
+    try:
+        tokens = load_all_tokens()
+        if channel_id not in tokens:
+            return jsonify({'success': False, 'error': 'Channel not found'}), 404
+        
+        broadcast_id = multi_broadcast_ids.get(channel_id)
+        if not broadcast_id:
+            return jsonify({'success': False, 'error': 'No active broadcast for this channel'}), 404
+        
+        youtube = get_authenticated_service(channel_id)
+        resp = youtube.liveBroadcasts().list(
+            part="snippet,status,statistics,contentDetails",
+            id=broadcast_id
+        ).execute()
+        
+        items = resp.get('items', [])
+        if not items:
+            return jsonify({'success': False, 'error': 'Broadcast not found'}), 404
+        
+        item = items[0]
+        snippet = item.get('snippet', {})
+        status = item.get('status', {})
+        statistics = item.get('statistics', {})
+        content_details = item.get('contentDetails', {})
+        
+        return jsonify({
+            'success': True,
+            'channel_id': channel_id,
+            'broadcast_id': broadcast_id,
+            'title': snippet.get('title', ''),
+            'description': snippet.get('description', ''),
+            'status': status.get('lifeCycleStatus', 'unknown'),
+            'privacy_status': status.get('privacyStatus', 'unknown'),
+            'viewers': int(statistics.get('concurrentViewers', 0)),
+            'live_url': f"https://www.youtube.com/watch?v={broadcast_id}",
+            'scheduled_start': snippet.get('scheduledStartTime'),
+            'actual_start': snippet.get('actualStartTime'),
+            'scheduled_end': snippet.get('scheduledEndTime'),
+            'actual_end': snippet.get('actualEndTime'),
+            'is_live': status.get('lifeCycleStatus') == 'live'
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.route('/multi_instant_viewers')
 def multi_instant_viewers():
+    """Legacy endpoint for backward compatibility"""
     from googleapiclient.errors import HttpError
     import concurrent.futures
     import threading
@@ -1004,6 +1417,7 @@ def save_draft_route():
             title = request.form.get('title', '').strip()
             description = request.form.get('description', '').strip()
             selected_channels_str = request.form.get('selected_channels', '[]')
+            is_shared = request.form.get('is_shared', 'false').lower() == 'true'
             
             # Parse selected_channels JSON string
             try:
@@ -1016,6 +1430,7 @@ def save_draft_route():
             title = data.get('title', '').strip()
             description = data.get('description', '').strip()
             selected_channels = data.get('selected_channels', [])
+            is_shared = data.get('is_shared', False)
         
         if not title:
             return jsonify({'success': False, 'message': 'Title is required'}), 400
@@ -1027,7 +1442,9 @@ def save_draft_route():
             'title': title,
             'description': description,
             'selected_channels': selected_channels,
-            'thumbnail_filename': None
+            'thumbnail_filename': None,
+            'is_shared': is_shared,
+            'share_token': generate_share_token() if is_shared else None
         }
         
         # Handle thumbnail upload if present
@@ -1044,11 +1461,17 @@ def save_draft_route():
         
         save_draft(draft_id, draft_data)
         
-        return jsonify({
+        response_data = {
             'success': True, 
             'message': 'Draft saved successfully',
             'draft_id': draft_id
-        })
+        }
+        
+        # Include share link if draft is shared
+        if is_shared:
+            response_data['share_link'] = f"/shared_draft/{draft_data['share_token']}"
+        
+        return jsonify(response_data)
         
     except Exception as e:
         return jsonify({'success': False, 'message': f'Error saving draft: {str(e)}'}), 500
@@ -1066,7 +1489,10 @@ def get_drafts_route():
                 'description': draft_data.get('description', ''),
                 'created_at': draft_data.get('created_at', ''),
                 'updated_at': draft_data.get('updated_at', ''),
-                'thumbnail_filename': draft_data.get('thumbnail_filename')
+                'thumbnail_filename': draft_data.get('thumbnail_filename'),
+                'is_shared': draft_data.get('is_shared', False),
+                'share_token': draft_data.get('share_token'),
+                'selected_channels': draft_data.get('selected_channels', [])
             })
         
         # Sort by updated_at descending
@@ -1084,10 +1510,101 @@ def get_draft_route(draft_id):
         if not draft:
             return jsonify({'success': False, 'message': 'Draft not found'}), 404
         
-        return jsonify({'success': True, 'draft': draft})
+        return jsonify({
+            'success': True, 
+            'draft': {
+                'title': draft.get('title', ''),
+                'description': draft.get('description', ''),
+                'selected_channels': draft.get('selected_channels', []),
+                'thumbnail_filename': draft.get('thumbnail_filename'),
+                'is_shared': draft.get('is_shared', False),
+                'share_token': draft.get('share_token')
+            }
+        })
         
     except Exception as e:
         return jsonify({'success': False, 'message': f'Error loading draft: {str(e)}'}), 500
+
+@app.route('/update_draft/<draft_id>', methods=['POST'])
+def update_draft_route(draft_id):
+    try:
+        # Check if request contains files (FormData) or JSON
+        if request.files:
+            # Handle FormData request (with file upload)
+            title = request.form.get('title', '').strip()
+            description = request.form.get('description', '').strip()
+            selected_channels_str = request.form.get('selected_channels', '[]')
+            is_shared = request.form.get('is_shared', 'false').lower() == 'true'
+            
+            # Parse selected_channels JSON string
+            try:
+                selected_channels = json.loads(selected_channels_str)
+            except json.JSONDecodeError:
+                selected_channels = []
+        else:
+            # Handle JSON request
+            data = request.get_json()
+            title = data.get('title', '').strip()
+            description = data.get('description', '').strip()
+            selected_channels = data.get('selected_channels', [])
+            is_shared = data.get('is_shared', False)
+        
+        if not title:
+            return jsonify({'success': False, 'message': 'Title is required'}), 400
+        
+        # Get existing draft
+        existing_draft = get_draft(draft_id)
+        if not existing_draft:
+            return jsonify({'success': False, 'message': 'Draft not found'}), 404
+        
+        # Prepare updated draft data
+        draft_data = {
+            'title': title,
+            'description': description,
+            'selected_channels': selected_channels,
+            'thumbnail_filename': existing_draft.get('thumbnail_filename'),  # Keep existing thumbnail
+            'is_shared': is_shared,
+            'share_token': existing_draft.get('share_token') if is_shared else None
+        }
+        
+        # Generate new share token if becoming shared
+        if is_shared and not existing_draft.get('share_token'):
+            draft_data['share_token'] = generate_share_token()
+        
+        # Handle thumbnail upload if present
+        if 'thumbnail' in request.files:
+            thumbnail_file = request.files['thumbnail']
+            if thumbnail_file and thumbnail_file.filename:
+                # Delete old thumbnail if exists
+                if existing_draft.get('thumbnail_filename'):
+                    old_thumbnail_path = os.path.join(current_dir, 'uploads', existing_draft['thumbnail_filename'])
+                    if os.path.exists(old_thumbnail_path):
+                        os.remove(old_thumbnail_path)
+                
+                # Save new thumbnail file
+                filename = f"thumb_{int(datetime.utcnow().timestamp())}.jpg"
+                upload_path = os.path.join(current_dir, 'uploads')
+                os.makedirs(upload_path, exist_ok=True)
+                thumbnail_path = os.path.join(upload_path, filename)
+                thumbnail_file.save(thumbnail_path)
+                draft_data['thumbnail_filename'] = filename
+        
+        save_draft(draft_id, draft_data)
+        
+        response_data = {
+            'success': True, 
+            'message': 'Draft updated successfully',
+            'draft_id': draft_id
+        }
+        
+        # Include share link if draft is shared
+        if is_shared:
+            response_data['share_link'] = f"/shared_draft/{draft_data['share_token']}"
+        
+        return jsonify(response_data)
+        
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Error updating draft: {str(e)}'}), 500
 
 @app.route('/delete_draft/<draft_id>', methods=['POST'])
 def delete_draft_route(draft_id):
@@ -1135,6 +1652,47 @@ def uploaded_file(filename):
     """Serve uploaded thumbnail files"""
     upload_path = os.path.join(current_dir, 'uploads')
     return send_from_directory(upload_path, filename)
+
+# --- Shared Draft Routes ---
+@app.route('/shared_draft/<share_token>')
+def shared_draft_page(share_token):
+    """Render the shared draft page for users to go live"""
+    draft_id, draft_data = get_draft_by_share_token(share_token)
+    if not draft_data:
+        return '''
+            <h2>Draft Not Found</h2>
+            <p>The shared draft you're looking for doesn't exist or has been removed.</p>
+            <p><a href="/">Back to Home</a></p>
+        '''
+    
+    return render_template('shared_draft.html', draft=draft_data, share_token=share_token)
+
+@app.route('/api/shared_draft/<share_token>')
+def get_shared_draft_api(share_token):
+    """API endpoint to get shared draft data"""
+    draft_id, draft_data = get_draft_by_share_token(share_token)
+    if not draft_data:
+        return jsonify({'success': False, 'message': 'Draft not found'}), 404
+    
+    return jsonify({
+        'success': True,
+        'draft': {
+            'title': draft_data.get('title', ''),
+            'description': draft_data.get('description', ''),
+            'selected_channels': draft_data.get('selected_channels', []),
+            'thumbnail_filename': draft_data.get('thumbnail_filename'),
+            'is_shared': draft_data.get('is_shared', False)
+        }
+    })
+
+@app.route('/create_shared_draft')
+@login_required
+def create_shared_draft_page():
+    """Render the admin page for creating shared drafts"""
+    tokens = load_all_tokens()
+    if not tokens:
+        return '''<h2>No accounts connected</h2><p>Please <a href="/authorize">authorize with YouTube</a> first.</p><p><a href="/">Back to Home</a></p>'''
+    return render_template('create_shared_draft.html')
 
 @app.route('/save_thumbnail', methods=['POST'])
 def save_thumbnail_route():
@@ -1233,10 +1791,11 @@ def delete_stream_session_route(session_id):
         return jsonify({'success': False, 'message': f'Error deleting stream session: {str(e)}'}), 500
 
 @app.route('/history')
+@login_required
 def history_page():
     """Render the dedicated history page"""
     return render_template('history.html')
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5005)
+    app.run(debug=True, port=5000)
 

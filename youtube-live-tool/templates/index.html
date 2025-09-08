@@ -1161,6 +1161,10 @@
                     <i class="fas fa-broadcast-tower"></i>
                     Multi-Channel Live
                 </a>
+                <a href="/create_shared_draft" class="menu-item">
+                    <i class="fas fa-share-alt"></i>
+                    Create Shared Draft
+                </a>
                 <a href="/history" class="menu-item">
                     <i class="fas fa-history"></i>
                     Stream History
@@ -1204,13 +1208,13 @@
                         Dashboard Analytics
                     </h1>
                     <p class="page-description">Comprehensive overview of your YouTube Live streaming data</p>
-                </div>
+            </div>
                 <div class="header-actions">
                     <div class="summary-stats">
                         <div class="stat-item">
                             <div class="stat-number">{{ accounts|length }}</div>
                             <div class="stat-label">Channels</div>
-                        </div>
+            </div>
                         <div class="stat-item">
                             <div class="stat-number">0</div>
                             <div class="stat-label">Live Events</div>
@@ -1323,6 +1327,10 @@
                         <i class="fas fa-broadcast-tower"></i>
                         Multi-Channel Live
                     </a>
+                    <a href="/create_shared_draft" class="btn btn-primary">
+                        <i class="fas fa-share-alt"></i>
+                        Create Shared Draft
+                    </a>
                 </div>
             </div>
 
@@ -1372,13 +1380,13 @@
                                                     <span class="expiry-status expired">Expired</span>
                                                 {% elif days_left < 7 %}
                                                     <span class="expiry-status warning">Expires Soon</span>
-                                                {% else %}
+                        {% else %}
                                                     <span class="expiry-status valid">{{ days_left }} days left</span>
                                                 {% endif %}
                                             {% else %}
                                                 <span class="expiry-unknown">Unknown</span>
-                                            {% endif %}
-                                        </div>
+                        {% endif %}
+                    </div>
                                     </td>
                                     <td>
                                         {% if channel.active %}
@@ -1403,7 +1411,7 @@
                                         </div>
                                     </td>
                                 </tr>
-                                {% endfor %}
+                    {% endfor %}
                             </tbody>
                         </table>
                     </div>
@@ -1499,8 +1507,8 @@
                     Stream Information
                 </h3>
                 <div class="stream-details">
-                    <p><strong>RTMP URL:</strong> {{ stream_info.rtmp_url }}</p>
-                    <p><strong>Stream Key:</strong> {{ stream_info.stream_key }}</p>
+                <p><strong>RTMP URL:</strong> {{ stream_info.rtmp_url }}</p>
+                <p><strong>Stream Key:</strong> {{ stream_info.stream_key }}</p>
                     <p><em>Use these details in your streaming software (like OBS) to go live.</em></p>
                 </div>
             </div>
@@ -1643,6 +1651,12 @@
                                             <button class="btn btn-draft btn-draft-primary" onclick="loadDraftToWizard('${draft.id}')" title="Load Draft">
                                                 <i class="fas fa-play"></i>
                                             </button>
+                                            ${draft.is_shared ? 
+                                                `<button class="btn btn-draft btn-draft-primary" onclick="copyShareLink('${draft.id}')" title="Copy Share Link">
+                                                    <i class="fas fa-share"></i>
+                                                </button>` : 
+                                                ''
+                                            }
                                             <button class="btn btn-draft btn-draft-danger" onclick="deleteDraft('${draft.id}')" title="Delete Draft">
                                                 <i class="fas fa-trash"></i>
                                             </button>
@@ -1652,6 +1666,7 @@
                                     <div class="draft-meta">
                                         <span>Created: ${new Date(draft.created_at).toLocaleDateString()}</span>
                                         <span>Updated: ${new Date(draft.updated_at).toLocaleDateString()}</span>
+                                        ${draft.is_shared ? '<span style="color: #48bb78; font-weight: bold;">🔗 Shared</span>' : ''}
                                     </div>
                                 </div>
                             `).join('')}
@@ -1675,6 +1690,24 @@
                         <p>There was an error loading your drafts. Please try again.</p>
                     </div>
                 `;
+            }
+        }
+
+        async function copyShareLink(draftId) {
+            try {
+                const response = await fetch(`/get_draft/${draftId}`);
+                const result = await response.json();
+                
+                if (result.success && result.draft.is_shared) {
+                    const shareUrl = window.location.origin + `/shared_draft/${result.draft.share_token}`;
+                    await navigator.clipboard.writeText(shareUrl);
+                    alert('Share link copied to clipboard!');
+                } else {
+                    alert('This draft is not shared or not found.');
+                }
+            } catch (error) {
+                console.error('Error getting share link:', error);
+                alert('Error getting share link. Please try again.');
             }
         }
 

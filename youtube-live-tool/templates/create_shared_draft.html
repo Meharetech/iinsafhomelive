@@ -1,0 +1,1720 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Shared Draft - YouTube Live</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        /* Desktop optimizations */
+        @media (min-width: 1024px) {
+            .drafts-list {
+                grid-template-columns: repeat(auto-fill, minmax(450px, 1fr));
+                gap: 30px;
+            }
+
+            .draft-item {
+                padding: 30px;
+            }
+
+            .draft-thumbnail {
+                width: 140px;
+                height: 90px;
+            }
+
+            .draft-title {
+                font-size: 22px;
+            }
+
+            .draft-description {
+                font-size: 16px;
+                padding: 15px 18px;
+            }
+
+            .btn-draft {
+                padding: 10px 18px;
+                font-size: 13px;
+            }
+
+            .channel-grid {
+                grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+                gap: 20px;
+            }
+
+            .form-input {
+                padding: 18px;
+                font-size: 16px;
+            }
+
+            .form-textarea {
+                min-height: 120px;
+            }
+
+            .file-upload-area {
+                padding: 40px;
+            }
+
+            .file-upload-icon {
+                font-size: 56px;
+            }
+
+            .file-upload-text {
+                font-size: 18px;
+            }
+
+            .file-upload-hint {
+                font-size: 16px;
+            }
+        }
+
+        .card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+            overflow: hidden;
+            width: 100%;
+            position: relative;
+            margin-bottom: 30px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            position: relative;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="white" opacity="0.1"/><circle cx="75" cy="75" r="1" fill="white" opacity="0.1"/><circle cx="50" cy="10" r="0.5" fill="white" opacity="0.1"/><circle cx="10" cy="60" r="0.5" fill="white" opacity="0.1"/><circle cx="90" cy="40" r="0.5" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+            opacity: 0.3;
+        }
+
+        .header-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .title {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .subtitle {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+
+        .back-link {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: white;
+            text-decoration: none;
+            font-size: 18px;
+            opacity: 0.8;
+            transition: opacity 0.3s ease;
+        }
+
+        .back-link:hover {
+            opacity: 1;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-label {
+            display: block;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 8px;
+            font-size: 16px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background: #f8fafc;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .file-upload-area {
+            border: 2px dashed #cbd5e0;
+            border-radius: 12px;
+            padding: 30px;
+            text-align: center;
+            background: #f8fafc;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .file-upload-area:hover {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .file-upload-area.dragover {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .file-upload-icon {
+            font-size: 48px;
+            color: #a0aec0;
+            margin-bottom: 15px;
+        }
+
+        .file-upload-text {
+            color: #718096;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+
+        .file-upload-hint {
+            color: #a0aec0;
+            font-size: 14px;
+        }
+
+        .thumbnail-preview {
+            width: 100%;
+            max-width: 300px;
+            height: 180px;
+            border-radius: 12px;
+            object-fit: cover;
+            margin: 15px auto;
+            display: block;
+            border: 2px solid #e2e8f0;
+        }
+
+        .channel-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .channel-card {
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 15px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .channel-card:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+
+        .channel-card.selected {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .channel-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+
+        .channel-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .channel-info h3 {
+            color: #2d3748;
+            font-size: 14px;
+            margin-bottom: 3px;
+        }
+
+        .channel-info p {
+            color: #718096;
+            font-size: 12px;
+        }
+
+        .channel-checkbox {
+            width: 18px;
+            height: 18px;
+            accent-color: #667eea;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            accent-color: #667eea;
+        }
+
+        .checkbox-group label {
+            font-weight: 600;
+            color: #2d3748;
+            cursor: pointer;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            flex: 1;
+            min-width: 150px;
+            padding: 15px 25px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #e2e8f0;
+            color: #4a5568;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: #cbd5e0;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .success-message {
+            background: #c6f6d5;
+            border: 2px solid #68d391;
+            border-radius: 12px;
+            padding: 15px;
+            color: #22543d;
+            font-weight: 600;
+            margin-top: 15px;
+            display: none;
+        }
+
+        .share-link {
+            background: #f0f4ff;
+            border: 2px solid #667eea;
+            border-radius: 12px;
+            padding: 15px;
+            margin-top: 15px;
+            font-family: 'Courier New', monospace;
+            word-break: break-all;
+        }
+
+        .loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #718096;
+            font-size: 16px;
+            padding: 40px;
+            background: linear-gradient(145deg, #f8fafc, #ffffff);
+            border-radius: 15px;
+            border: 2px dashed #e2e8f0;
+        }
+
+        .loading::before {
+            content: '';
+            width: 40px;
+            height: 40px;
+            border: 4px solid #e2e8f0;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Tab Navigation */
+        .tab-navigation {
+            display: flex;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 15px 20px;
+            border: none;
+            background: transparent;
+            color: #718096;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            border-bottom: 3px solid transparent;
+        }
+
+        .tab-btn:hover {
+            color: #667eea;
+            background: #f8fafc;
+        }
+
+        .tab-btn.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Drafts Section */
+        .drafts-section {
+            margin-top: 20px;
+        }
+
+        .section-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 30px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 20px 0;
+            border-bottom: 3px solid #e2e8f0;
+            position: relative;
+        }
+
+        .section-title::after {
+            content: '';
+            position: absolute;
+            bottom: -3px;
+            left: 0;
+            width: 60px;
+            height: 3px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 2px;
+        }
+
+        .drafts-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .draft-item:not(:last-child) {
+            border-bottom: 1px solid #f0f0f0;
+            margin-bottom: 5px;
+            padding-bottom: 25px;
+        }
+
+        .draft-item {
+            background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+            border: 2px solid #e2e8f0;
+            border-radius: 15px;
+            padding: 20px;
+            transition: all 0.4s ease;
+            position: relative;
+            overflow: hidden;
+            animation: fadeInUp 0.6s ease-out;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            cursor: pointer;
+        }
+
+        .draft-item:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.1);
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .draft-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+
+        .draft-item:hover::before {
+            opacity: 1;
+        }
+
+        .draft-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .draft-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 10px;
+        }
+
+        .draft-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #2d3748;
+            margin: 0;
+            line-height: 1.3;
+            background: linear-gradient(135deg, #2d3748, #4a5568);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .draft-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .draft-description {
+            color: #718096;
+            font-size: 14px;
+            line-height: 1.5;
+            margin-bottom: 10px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            padding: 10px 15px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border-left: 3px solid #e2e8f0;
+        }
+
+        .draft-thumbnail {
+            width: 120px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+            flex-shrink: 0;
+        }
+
+        .draft-item:hover .draft-thumbnail {
+            transform: scale(1.05);
+        }
+
+        .draft-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 11px;
+            color: #a0aec0;
+            margin-bottom: 10px;
+            padding: 8px 12px;
+            background: #f7fafc;
+            border-radius: 8px;
+            border-left: 3px solid #e2e8f0;
+        }
+
+        .draft-meta span {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .draft-meta span:before {
+            content: '📅';
+            font-size: 14px;
+        }
+
+         .draft-channels {
+             margin-bottom: 0;
+             padding: 8px 12px;
+             background: #f7fafc;
+             border-radius: 8px;
+             border-left: 4px solid #667eea;
+         }
+
+         .channels-label {
+             display: flex;
+             align-items: center;
+             gap: 8px;
+             color: #4a5568;
+             font-size: 13px;
+             font-weight: 600;
+             text-transform: uppercase;
+             letter-spacing: 0.5px;
+         }
+
+         .channels-label i {
+             color: #667eea;
+             font-size: 14px;
+         }
+
+        .btn-draft {
+            padding: 8px 16px;
+            font-size: 12px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-draft-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-draft-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-draft-warning {
+            background: linear-gradient(135deg, #f6ad55, #ed8936);
+            color: white;
+            box-shadow: 0 2px 8px rgba(246, 173, 85, 0.3);
+        }
+
+        .btn-draft-warning:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(246, 173, 85, 0.4);
+        }
+
+        .btn-draft-danger {
+            background: linear-gradient(135deg, #e53e3e, #c53030);
+            color: white;
+            box-shadow: 0 2px 8px rgba(229, 62, 62, 0.3);
+        }
+
+        .btn-draft-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(229, 62, 62, 0.4);
+        }
+
+        .no-drafts {
+            text-align: center;
+            color: #718096;
+            padding: 60px 40px;
+            background: linear-gradient(145deg, #f8fafc, #ffffff);
+            border-radius: 20px;
+            border: 2px dashed #e2e8f0;
+        }
+
+        .no-drafts i {
+            font-size: 64px;
+            margin-bottom: 20px;
+            color: #cbd5e0;
+            opacity: 0.7;
+        }
+
+        .no-drafts h3 {
+            font-size: 24px;
+            margin-bottom: 10px;
+            color: #4a5568;
+        }
+
+        .no-drafts p {
+            font-size: 16px;
+            color: #718096;
+        }
+
+        /* Edit Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 600px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .modal-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2d3748;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: #a0aec0;
+            cursor: pointer;
+            padding: 5px;
+        }
+
+        .close-btn:hover {
+            color: #718096;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .content {
+                padding: 20px;
+            }
+            
+            .button-group {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .btn {
+                min-width: auto;
+                padding: 12px 20px;
+                font-size: 14px;
+            }
+            
+            .channel-grid {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+
+            .draft-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+                padding: 15px;
+            }
+
+            .draft-thumbnail {
+                width: 100%;
+                height: 120px;
+                align-self: center;
+            }
+
+            .draft-header {
+                flex-direction: column;
+                gap: 15px;
+                align-items: flex-start;
+                width: 100%;
+            }
+
+            .draft-actions {
+                width: 100%;
+                justify-content: space-between;
+                gap: 8px;
+            }
+
+            .btn-draft {
+                flex: 1;
+                justify-content: center;
+                padding: 10px 12px;
+                font-size: 11px;
+            }
+
+            .draft-title {
+                font-size: 18px;
+                line-height: 1.2;
+            }
+
+            .draft-description {
+                font-size: 13px;
+                padding: 8px 12px;
+            }
+
+            .draft-meta {
+                flex-direction: column;
+                gap: 5px;
+                text-align: center;
+                padding: 8px 10px;
+            }
+
+            .draft-channels {
+                padding: 8px 10px;
+            }
+
+            .channels-label {
+                font-size: 12px;
+                gap: 6px;
+            }
+
+            .tab-navigation {
+                flex-direction: column;
+                gap: 5px;
+            }
+
+            .tab-btn {
+                padding: 12px 15px;
+                font-size: 14px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 5px;
+            }
+
+            .content {
+                padding: 15px;
+            }
+
+            .draft-item {
+                padding: 12px;
+                gap: 12px;
+            }
+
+            .draft-title {
+                font-size: 16px;
+                line-height: 1.1;
+            }
+
+            .draft-description {
+                font-size: 12px;
+                padding: 6px 10px;
+                line-height: 1.4;
+            }
+
+            .draft-meta {
+                flex-direction: column;
+                gap: 4px;
+                text-align: center;
+                padding: 6px 8px;
+                font-size: 10px;
+            }
+
+            .draft-channels {
+                padding: 6px 8px;
+            }
+
+            .channels-label {
+                font-size: 11px;
+                gap: 4px;
+            }
+
+            .btn-draft {
+                padding: 8px 10px;
+                font-size: 10px;
+            }
+
+            .draft-actions {
+                gap: 6px;
+            }
+
+            .header {
+                padding: 20px;
+            }
+
+            .title {
+                font-size: 24px;
+            }
+
+            .subtitle {
+                font-size: 14px;
+            }
+
+            .form-input {
+                padding: 12px;
+                font-size: 14px;
+            }
+
+            .form-textarea {
+                min-height: 80px;
+            }
+
+            .file-upload-area {
+                padding: 20px;
+            }
+
+            .file-upload-icon {
+                font-size: 36px;
+            }
+
+            .file-upload-text {
+                font-size: 14px;
+            }
+
+            .file-upload-hint {
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <a href="/" class="back-link">
+                <i class="fas fa-arrow-left"></i>
+            </a>
+            
+            <div class="header">
+                <div class="header-content">
+                    <h1 class="title">
+                        <i class="fas fa-share-alt"></i>
+                        Create Shared Draft
+                    </h1>
+                    <p class="subtitle">Create a draft that users can access to go live instantly</p>
+                </div>
+            </div>
+
+            <div class="content">
+                <!-- Tab Navigation -->
+                <div class="tab-navigation">
+                    <button class="tab-btn active" id="createTab" onclick="switchTab('create')">
+                        <i class="fas fa-plus"></i>
+                        Create New Draft
+                    </button>
+                    <button class="tab-btn" id="editTab" onclick="switchTab('edit')">
+                        <i class="fas fa-edit"></i>
+                        Edit Drafts
+                    </button>
+                </div>
+
+                <!-- Create Draft Tab -->
+                <div id="createDraftTab" class="tab-content active">
+                    <form id="draftForm">
+                        <div class="form-group">
+                            <label class="form-label">Stream Title</label>
+                            <input type="text" class="form-input" id="streamTitle" placeholder="Enter your stream title" maxlength="95" required>
+                        </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Stream Description</label>
+                        <textarea class="form-input form-textarea" id="streamDesc" placeholder="Describe your stream" maxlength="1000"></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Thumbnail</label>
+                        <div class="file-upload-area" id="fileUploadArea">
+                            <div class="file-upload-icon">
+                                <i class="fas fa-cloud-upload-alt"></i>
+                            </div>
+                            <div class="file-upload-text">Click to upload or drag and drop</div>
+                            <div class="file-upload-hint">PNG, JPG, GIF up to 2MB</div>
+                            <input type="file" id="streamThumb" accept="image/*" style="display: none;">
+                        </div>
+                        <img id="thumbnailPreview" class="thumbnail-preview" style="display:none;" alt="Thumbnail Preview">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Select Channels</label>
+                        <div class="channel-grid" id="channelList">
+                            <div class="loading">Loading channels...</div>
+                        </div>
+                    </div>
+
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="isShared" checked>
+                        <label for="isShared">Make this draft shareable (users can access it via a link)</label>
+                    </div>
+
+                        <div class="button-group">
+                            <button type="button" class="btn btn-secondary" onclick="window.location.href='/'">
+                                <i class="fas fa-times"></i>
+                                Cancel
+                            </button>
+                            <button type="submit" class="btn btn-primary" id="saveBtn">
+                                <i class="fas fa-save"></i>
+                                Create Shared Draft
+                            </button>
+                        </div>
+                    </form>
+
+                    <div class="success-message" id="successMessage">
+                        <i class="fas fa-check-circle"></i>
+                        Draft created successfully!
+                    </div>
+
+                    <div class="share-link" id="shareLink" style="display:none;">
+                        <strong>Share this link with users:</strong><br>
+                        <span id="shareUrl"></span>
+                    </div>
+                </div>
+
+                <!-- Edit Drafts Tab -->
+                <div id="editDraftTab" class="tab-content">
+                    <div class="drafts-section">
+                        <h3 class="section-title">
+                            <i class="fas fa-list"></i>
+                            Manage Existing Drafts
+                        </h3>
+                        <div id="draftsList" class="drafts-list">
+                            <div class="loading">Loading drafts...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Draft Modal -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">
+                    <i class="fas fa-edit"></i>
+                    Edit Draft
+                </h2>
+                <button class="close-btn" onclick="closeEditModal()">&times;</button>
+            </div>
+            <form id="editDraftForm">
+                <div class="form-group">
+                    <label class="form-label">Stream Title</label>
+                    <input type="text" class="form-input" id="editStreamTitle" placeholder="Enter your stream title" maxlength="95" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Stream Description</label>
+                    <textarea class="form-input form-textarea" id="editStreamDesc" placeholder="Describe your stream" maxlength="1000"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Thumbnail</label>
+                    <div class="file-upload-area" id="editFileUploadArea">
+                        <div class="file-upload-icon">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                        </div>
+                        <div class="file-upload-text">Click to upload or drag and drop</div>
+                        <div class="file-upload-hint">PNG, JPG, GIF up to 2MB</div>
+                        <input type="file" id="editStreamThumb" accept="image/*" style="display: none;">
+                    </div>
+                    <img id="editThumbnailPreview" class="thumbnail-preview" style="display:none;" alt="Thumbnail Preview">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Select Channels</label>
+                    <div class="channel-grid" id="editChannelList">
+                        <div class="loading">Loading channels...</div>
+                    </div>
+                </div>
+
+                <div class="checkbox-group">
+                    <input type="checkbox" id="editIsShared">
+                    <label for="editIsShared">Make this draft shareable (users can access it via a link)</label>
+                </div>
+
+                <div class="button-group">
+                    <button type="button" class="btn btn-secondary" onclick="closeEditModal()">
+                        <i class="fas fa-times"></i>
+                        Cancel
+                    </button>
+                    <button type="submit" class="btn btn-primary" id="updateBtn">
+                        <i class="fas fa-save"></i>
+                        Update Draft
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let selectedChannels = [];
+        let editSelectedChannels = [];
+        let currentEditDraftId = null;
+
+        // DOM elements
+        const form = document.getElementById('draftForm');
+        const streamTitle = document.getElementById('streamTitle');
+        const streamDesc = document.getElementById('streamDesc');
+        const streamThumb = document.getElementById('streamThumb');
+        const fileUploadArea = document.getElementById('fileUploadArea');
+        const thumbnailPreview = document.getElementById('thumbnailPreview');
+        const channelList = document.getElementById('channelList');
+        const isShared = document.getElementById('isShared');
+        const saveBtn = document.getElementById('saveBtn');
+        const successMessage = document.getElementById('successMessage');
+        const shareLink = document.getElementById('shareLink');
+        const shareUrl = document.getElementById('shareUrl');
+
+        // Edit modal elements
+        const editModal = document.getElementById('editModal');
+        const editForm = document.getElementById('editDraftForm');
+        const editStreamTitle = document.getElementById('editStreamTitle');
+        const editStreamDesc = document.getElementById('editStreamDesc');
+        const editStreamThumb = document.getElementById('editStreamThumb');
+        const editFileUploadArea = document.getElementById('editFileUploadArea');
+        const editThumbnailPreview = document.getElementById('editThumbnailPreview');
+        const editChannelList = document.getElementById('editChannelList');
+        const editIsShared = document.getElementById('editIsShared');
+        const updateBtn = document.getElementById('updateBtn');
+        const draftsList = document.getElementById('draftsList');
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            loadChannels();
+            initializeFileUpload();
+            initializeForm();
+            initializeEditFileUpload();
+            initializeEditForm();
+        });
+
+        // Tab switching
+        function switchTab(tab) {
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // Remove active class from all tab buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Show selected tab content
+            if (tab === 'create') {
+                document.getElementById('createDraftTab').classList.add('active');
+                document.getElementById('createTab').classList.add('active');
+            } else if (tab === 'edit') {
+                document.getElementById('editDraftTab').classList.add('active');
+                document.getElementById('editTab').classList.add('active');
+                loadDraftsList();
+            }
+        }
+
+        function loadChannels() {
+            fetch('/multi_instant_channel_list')
+                .then(r => r.json())
+                .then(data => {
+                    if (data.channels) {
+                        channelList.innerHTML = data.channels.map(c => `
+                            <div class="channel-card" data-channel-id="${c.channel_id}">
+                                <div class="channel-header">
+                                    <input type="checkbox" class="channel-checkbox" data-channel-id="${c.channel_id}" checked>
+                                    <div class="channel-avatar">${(c.channel_name || c.channel_id).slice(0,2).toUpperCase()}</div>
+                                    <div class="channel-info">
+                                        <h3>${c.channel_name || c.channel_id}</h3>
+                                        <p>${c.channel_id}</p>
+                                    </div>
+                                </div>
+                            </div>`).join('');
+                        
+                        // Add event listeners
+                        document.querySelectorAll('.channel-card').forEach(card => {
+                            card.addEventListener('click', (e) => {
+                                if (e.target.type !== 'checkbox') {
+                                    const checkbox = card.querySelector('.channel-checkbox');
+                                    checkbox.checked = !checkbox.checked;
+                                    updateChannelSelection();
+                                }
+                            });
+                        });
+                        
+                        document.querySelectorAll('.channel-checkbox').forEach(checkbox => {
+                            checkbox.addEventListener('change', updateChannelSelection);
+                        });
+                        
+                        // Initialize with all channels selected
+                        updateChannelSelection();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading channels:', error);
+                    channelList.innerHTML = '<div class="loading">Error loading channels. Please try again.</div>';
+                });
+        }
+
+        function updateChannelSelection() {
+            selectedChannels = Array.from(document.querySelectorAll('.channel-checkbox:checked'))
+                .map(cb => cb.getAttribute('data-channel-id'));
+            
+            // Update channel cards visual state
+            document.querySelectorAll('.channel-card').forEach(card => {
+                const checkbox = card.querySelector('.channel-checkbox');
+                if (checkbox.checked) {
+                    card.classList.add('selected');
+                } else {
+                    card.classList.remove('selected');
+                }
+            });
+        }
+
+        function initializeFileUpload() {
+            fileUploadArea.addEventListener('click', () => streamThumb.click());
+            
+            fileUploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                fileUploadArea.classList.add('dragover');
+            });
+            
+            fileUploadArea.addEventListener('dragleave', () => {
+                fileUploadArea.classList.remove('dragover');
+            });
+            
+            fileUploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                fileUploadArea.classList.remove('dragover');
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    streamThumb.files = files;
+                    handleThumbnailUpload({ target: streamThumb });
+                }
+            });
+            
+            streamThumb.addEventListener('change', handleThumbnailUpload);
+        }
+
+        function handleThumbnailUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                // Check file size (2MB = 2097152 bytes)
+                const maxSize = 2 * 1024 * 1024;
+                if (file.size > maxSize) {
+                    alert(`File too large! Please select an image smaller than 2MB. Current size: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
+                    event.target.value = '';
+                    return;
+                }
+                
+                // Check file type
+                if (!file.type.startsWith('image/')) {
+                    alert('Please select a valid image file (JPG, PNG, GIF, etc.)');
+                    event.target.value = '';
+                    return;
+                }
+                
+                // Show preview
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    thumbnailPreview.src = e.target.result;
+                    thumbnailPreview.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function initializeForm() {
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                if (selectedChannels.length === 0) {
+                    alert('Please select at least one channel');
+                    return;
+                }
+                
+                // Show loading state
+                saveBtn.disabled = true;
+                saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
+                
+                try {
+                    // Prepare form data
+                    const formData = new FormData();
+                    formData.append('title', streamTitle.value);
+                    formData.append('description', streamDesc.value);
+                    formData.append('selected_channels', JSON.stringify(selectedChannels));
+                    formData.append('is_shared', isShared.checked);
+                    
+                    // Add thumbnail if present
+                    if (streamThumb.files[0]) {
+                        formData.append('thumbnail', streamThumb.files[0]);
+                    }
+                    
+                    const response = await fetch('/save_draft', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        successMessage.style.display = 'block';
+                        
+                        if (result.share_link) {
+                            shareUrl.textContent = window.location.origin + result.share_link;
+                            shareLink.style.display = 'block';
+                        }
+                        
+                        // Reset form
+                        form.reset();
+                        thumbnailPreview.style.display = 'none';
+                        selectedChannels = [];
+                        updateChannelSelection();
+                        
+                        // Scroll to success message
+                        successMessage.scrollIntoView({ behavior: 'smooth' });
+                    } else {
+                        alert('Error creating draft: ' + result.message);
+                    }
+                } catch (error) {
+                    console.error('Error creating draft:', error);
+                    alert('Error creating draft. Please try again.');
+                } finally {
+                    // Reset button state
+                    saveBtn.disabled = false;
+                    saveBtn.innerHTML = '<i class="fas fa-save"></i> Create Shared Draft';
+                }
+            });
+        }
+
+        // Load drafts list for editing
+        async function loadDraftsList() {
+            try {
+                const response = await fetch('/get_drafts');
+                const result = await response.json();
+                
+                if (result.success && result.drafts.length > 0) {
+                    // Fetch channel names for better display
+                    const channelResponse = await fetch('/multi_instant_channel_list');
+                    const channelData = await channelResponse.json();
+                    const channelMap = {};
+                    if (channelData.channels) {
+                        channelData.channels.forEach(channel => {
+                            channelMap[channel.channel_id] = channel.channel_name || channel.channel_id;
+                        });
+                    }
+                    
+                    draftsList.innerHTML = result.drafts.map(draft => {
+                        return `
+                        <div class="draft-item">
+                            ${draft.thumbnail_filename ? 
+                                `<img src="/uploads/${draft.thumbnail_filename}" class="draft-thumbnail" alt="Draft thumbnail">` : 
+                                '<div class="draft-thumbnail" style="background: #f0f0f0; display: flex; align-items: center; justify-content: center; color: #999;"><i class="fas fa-image" style="font-size: 24px;"></i></div>'
+                            }
+                            <div class="draft-content">
+                                <div class="draft-header">
+                                    <h3 class="draft-title">${draft.title}</h3>
+                                    <div class="draft-actions">
+                                        <button class="btn-draft btn-draft-warning" onclick="editDraft('${draft.id}')" title="Edit Draft">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        ${draft.is_shared ? 
+                                            `<button class="btn-draft btn-draft-primary" onclick="copyShareLink('${draft.id}')" title="Copy Share Link">
+                                                <i class="fas fa-share"></i>
+                                            </button>` : 
+                                            ''
+                                        }
+                                        <button class="btn-draft btn-draft-danger" onclick="deleteDraft('${draft.id}')" title="Delete Draft">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <p class="draft-description">${draft.description || 'No description'}</p>
+                                <div class="draft-meta">
+                                    <span>Created: ${new Date(draft.created_at).toLocaleDateString()}</span>
+                                    <span>Updated: ${new Date(draft.updated_at).toLocaleDateString()}</span>
+                                    ${draft.is_shared ? '<span style="color: #48bb78; font-weight: bold;">🔗 Shared</span>' : ''}
+                                </div>
+                                <div class="draft-channels">
+                                    <div class="channels-label">
+                                        <i class="fas fa-broadcast-tower"></i>
+                                        <strong>Selected Channels: ${draft.selected_channels ? draft.selected_channels.length : 0}</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        `;
+                    }).join('');
+                } else {
+                    draftsList.innerHTML = `
+                        <div class="no-drafts">
+                            <i class="fas fa-file-alt"></i>
+                            <h3>No Drafts Found</h3>
+                            <p>Create your first draft to get started.</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error loading drafts:', error);
+                draftsList.innerHTML = `
+                    <div class="no-drafts">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <h3>Error Loading Drafts</h3>
+                        <p>There was an error loading your drafts. Please try again.</p>
+                    </div>
+                `;
+            }
+        }
+
+         // Edit draft functionality
+         async function editDraft(draftId) {
+             try {
+                 const response = await fetch(`/get_draft/${draftId}`);
+                 const result = await response.json();
+                 
+                 if (result.success) {
+                     currentEditDraftId = draftId;
+                     
+                     // Set selected channels FIRST before loading channels
+                     editSelectedChannels = result.draft.selected_channels || [];
+                     
+                     // Populate edit form
+                     editStreamTitle.value = result.draft.title;
+                     editStreamDesc.value = result.draft.description;
+                     editIsShared.checked = result.draft.is_shared;
+                     
+                     // Load existing thumbnail if exists
+                     if (result.draft.thumbnail_filename) {
+                         editThumbnailPreview.src = `/uploads/${result.draft.thumbnail_filename}`;
+                         editThumbnailPreview.style.display = 'block';
+                     }
+                     
+                     // Load channels for editing (this will use editSelectedChannels to pre-select)
+                     await loadEditChannels();
+                     
+                     // Show modal
+                     editModal.style.display = 'block';
+                 } else {
+                     alert('Error loading draft: ' + result.message);
+                 }
+             } catch (error) {
+                 console.error('Error loading draft:', error);
+                 alert('Error loading draft. Please try again.');
+             }
+         }
+
+         async function loadEditChannels() {
+             try {
+                 const response = await fetch('/multi_instant_channel_list');
+                 const data = await response.json();
+                 
+                 if (data.channels) {
+                     editChannelList.innerHTML = data.channels.map(c => {
+                         const isSelected = editSelectedChannels.includes(c.channel_id);
+                         return `
+                             <div class="channel-card" data-channel-id="${c.channel_id}">
+                                 <div class="channel-header">
+                                     <input type="checkbox" class="channel-checkbox" data-channel-id="${c.channel_id}" ${isSelected ? 'checked' : ''}>
+                                     <div class="channel-avatar">${(c.channel_name || c.channel_id).slice(0,2).toUpperCase()}</div>
+                                     <div class="channel-info">
+                                         <h3>${c.channel_name || c.channel_id}</h3>
+                                         <p>${c.channel_id}</p>
+                                     </div>
+                                 </div>
+                             </div>`;
+                     }).join('');
+                     
+                     // Add event listeners
+                     document.querySelectorAll('#editChannelList .channel-card').forEach(card => {
+                         card.addEventListener('click', (e) => {
+                             if (e.target.type !== 'checkbox') {
+                                 const checkbox = card.querySelector('.channel-checkbox');
+                                 checkbox.checked = !checkbox.checked;
+                                 updateEditChannelSelection();
+                             }
+                         });
+                     });
+                     
+                     document.querySelectorAll('#editChannelList .channel-checkbox').forEach(checkbox => {
+                         checkbox.addEventListener('change', updateEditChannelSelection);
+                     });
+                     
+                     // Update visual state after loading
+                     updateEditChannelSelection();
+                 }
+             } catch (error) {
+                 console.error('Error loading channels:', error);
+                 editChannelList.innerHTML = '<div class="loading">Error loading channels. Please try again.</div>';
+             }
+         }
+
+        function updateEditChannelSelection() {
+            editSelectedChannels = Array.from(document.querySelectorAll('#editChannelList .channel-checkbox:checked'))
+                .map(cb => cb.getAttribute('data-channel-id'));
+            
+            // Update channel cards visual state
+            document.querySelectorAll('#editChannelList .channel-card').forEach(card => {
+                const checkbox = card.querySelector('.channel-checkbox');
+                if (checkbox.checked) {
+                    card.classList.add('selected');
+                } else {
+                    card.classList.remove('selected');
+                }
+            });
+        }
+
+        function initializeEditFileUpload() {
+            editFileUploadArea.addEventListener('click', () => editStreamThumb.click());
+            
+            editFileUploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                editFileUploadArea.classList.add('dragover');
+            });
+            
+            editFileUploadArea.addEventListener('dragleave', () => {
+                editFileUploadArea.classList.remove('dragover');
+            });
+            
+            editFileUploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                editFileUploadArea.classList.remove('dragover');
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    editStreamThumb.files = files;
+                    handleEditThumbnailUpload({ target: editStreamThumb });
+                }
+            });
+            
+            editStreamThumb.addEventListener('change', handleEditThumbnailUpload);
+        }
+
+        function handleEditThumbnailUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                // Check file size (2MB = 2097152 bytes)
+                const maxSize = 2 * 1024 * 1024;
+                if (file.size > maxSize) {
+                    alert(`File too large! Please select an image smaller than 2MB. Current size: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
+                    event.target.value = '';
+                    return;
+                }
+                
+                // Check file type
+                if (!file.type.startsWith('image/')) {
+                    alert('Please select a valid image file (JPG, PNG, GIF, etc.)');
+                    event.target.value = '';
+                    return;
+                }
+                
+                // Show preview
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    editThumbnailPreview.src = e.target.result;
+                    editThumbnailPreview.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function initializeEditForm() {
+            editForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                if (editSelectedChannels.length === 0) {
+                    alert('Please select at least one channel');
+                    return;
+                }
+                
+                // Show loading state
+                updateBtn.disabled = true;
+                updateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
+                
+                try {
+                    // Prepare form data
+                    const formData = new FormData();
+                    formData.append('title', editStreamTitle.value);
+                    formData.append('description', editStreamDesc.value);
+                    formData.append('selected_channels', JSON.stringify(editSelectedChannels));
+                    formData.append('is_shared', editIsShared.checked);
+                    
+                    // Add thumbnail if present
+                    if (editStreamThumb.files[0]) {
+                        formData.append('thumbnail', editStreamThumb.files[0]);
+                    }
+                    
+                    const response = await fetch(`/update_draft/${currentEditDraftId}`, {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        alert('Draft updated successfully!');
+                        closeEditModal();
+                        loadDraftsList(); // Refresh the list
+                    } else {
+                        alert('Error updating draft: ' + result.message);
+                    }
+                } catch (error) {
+                    console.error('Error updating draft:', error);
+                    alert('Error updating draft. Please try again.');
+                } finally {
+                    // Reset button state
+                    updateBtn.disabled = false;
+                    updateBtn.innerHTML = '<i class="fas fa-save"></i> Update Draft';
+                }
+            });
+        }
+
+        function closeEditModal() {
+            editModal.style.display = 'none';
+            currentEditDraftId = null;
+            editForm.reset();
+            editThumbnailPreview.style.display = 'none';
+            editSelectedChannels = [];
+        }
+
+        async function deleteDraft(draftId) {
+            if (!confirm('Are you sure you want to delete this draft? This action cannot be undone.')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/delete_draft/${draftId}`, {
+                    method: 'POST'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('Draft deleted successfully!');
+                    loadDraftsList(); // Refresh the list
+                } else {
+                    alert('Error deleting draft: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Error deleting draft:', error);
+                alert('Error deleting draft. Please try again.');
+            }
+        }
+
+        async function copyShareLink(draftId) {
+            try {
+                const response = await fetch(`/get_draft/${draftId}`);
+                const result = await response.json();
+                
+                if (result.success && result.draft.is_shared) {
+                    const shareUrl = window.location.origin + `/shared_draft/${result.draft.share_token}`;
+                    await navigator.clipboard.writeText(shareUrl);
+                    alert('Share link copied to clipboard!');
+                } else {
+                    alert('This draft is not shared or not found.');
+                }
+            } catch (error) {
+                console.error('Error getting share link:', error);
+                alert('Error getting share link. Please try again.');
+            }
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            if (event.target === editModal) {
+                closeEditModal();
+            }
+        }
+    </script>
+</body>
+</html>
