@@ -1141,7 +1141,6 @@ def multi_instant_stop_stream():
 # --- LIVE STREAMING API ENDPOINTS ---
 
 @app.route('/api/live/status')
-@login_required
 def get_live_status():
     """Get overall live streaming status"""
     try:
@@ -1193,7 +1192,6 @@ def get_live_status():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/live/channels')
-@login_required
 def get_live_channels():
     """Get all live channel URLs and basic info"""
     try:
@@ -1237,7 +1235,6 @@ def get_live_channels():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/live/viewers')
-@login_required
 def get_live_viewers():
     """Get viewer counts for all live channels"""
     try:
@@ -1291,7 +1288,6 @@ def get_live_viewers():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/live/channel/<channel_id>')
-@login_required
 def get_channel_details(channel_id):
     """Get detailed info for a specific channel"""
     try:
