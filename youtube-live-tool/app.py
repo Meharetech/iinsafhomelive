@@ -347,7 +347,6 @@ def switch_account(channel_id):
     return redirect(url_for('index'))
 
 @app.route('/authorize')
-@login_required
 def authorize():
     """Render the authorization form page"""
     return render_template('authorize.html')

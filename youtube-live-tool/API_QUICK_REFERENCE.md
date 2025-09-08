@@ -3,10 +3,13 @@
 ## 🔐 Authentication
 **Public API:** No authentication required for live streaming endpoints!
 
+**Public Pages:**
+- Channel Authorization: `http://localhost:5005/authorize` - Anyone can add channels
+
 **Admin Functions:** Login required for dashboard management
 ```bash
 # Login (for admin functions only)
-curl -X POST "http://localhost:5000/login" \
+curl -X POST "http://localhost:5005/login" \
   -H "Content-Type: application/json" \
   -d '{"username": "user", "password": "1234567890"}'
 ```
@@ -59,24 +62,24 @@ setInterval(() => {
 import requests
 
 # No login required for public API!
-response = requests.get('http://localhost:5000/api/live/status')
+response = requests.get('http://localhost:5005/api/live/status')
 print(response.json())
 
 # Get viewers
-viewers = requests.get('http://localhost:5000/api/live/viewers')
+viewers = requests.get('http://localhost:5005/api/live/viewers')
 print(viewers.json())
 ```
 
 ### cURL
 ```bash
 # Get live status - No authentication needed!
-curl -X GET "http://localhost:5000/api/live/status"
+curl -X GET "http://localhost:5005/api/live/status"
 
 # Get viewers
-curl -X GET "http://localhost:5000/api/live/viewers"
+curl -X GET "http://localhost:5005/api/live/viewers"
 
 # Get channel details
-curl -X GET "http://localhost:5000/api/live/channel/UCImw27DBFWp6VLU9Joi4ZIA"
+curl -X GET "http://localhost:5005/api/live/channel/UCImw27DBFWp6VLU9Joi4ZIA"
 ```
 
 ## 📈 Response Examples

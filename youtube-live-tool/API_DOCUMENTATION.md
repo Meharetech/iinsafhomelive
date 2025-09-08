@@ -5,16 +5,20 @@ The YouTube Live Dashboard provides a comprehensive API for managing live stream
 
 ## Base URL
 ```
-http://localhost:5000
+http://localhost:5005
 ```
 
 ## Authentication
 **Public API Endpoints:** The live streaming API endpoints are publicly accessible and do not require authentication.
 
 **Admin Endpoints:** Some endpoints still require authentication for security:
-- Dashboard management (`/`, `/switch_account`, `/authorize`, etc.)
+- Dashboard management (`/`, `/switch_account`, etc.)
 - Stream creation and management
 - Channel deletion
+
+**Public Endpoints:**
+- Channel authorization (`/authorize`) - Anyone can add/authorize channels
+- OAuth callbacks (`/oauth2callback`, `/authorize_oauth`)
 
 **Login Endpoint (for admin functions):**
 ```http
@@ -247,7 +251,7 @@ import json
 import time
 
 class YouTubeLiveAPI:
-    def __init__(self, base_url="http://localhost:5000"):
+    def __init__(self, base_url="http://localhost:5005"):
         self.base_url = base_url
         self.session = requests.Session()
     
@@ -328,17 +332,17 @@ if __name__ == "__main__":
 
 #### Get Live Status
 ```bash
-curl -X GET "http://localhost:5000/api/live/status"
+curl -X GET "http://localhost:5005/api/live/status"
 ```
 
 #### Get Viewer Counts
 ```bash
-curl -X GET "http://localhost:5000/api/live/viewers"
+curl -X GET "http://localhost:5005/api/live/viewers"
 ```
 
 #### Get Channel Details
 ```bash
-curl -X GET "http://localhost:5000/api/live/channel/UCImw27DBFWp6VLU9Joi4ZIA"
+curl -X GET "http://localhost:5005/api/live/channel/UCImw27DBFWp6VLU9Joi4ZIA"
 ```
 
 ---
@@ -387,7 +391,7 @@ For real-time updates, consider implementing WebSocket connections:
 
 ```javascript
 // Future WebSocket implementation
-const ws = new WebSocket('ws://localhost:5000/ws/live');
+const ws = new WebSocket('ws://localhost:5005/ws/live');
 ws.onmessage = function(event) {
   const data = JSON.parse(event.data);
   console.log('Live update:', data);
@@ -407,7 +411,7 @@ python test_api.py
 
 ### Manual Testing
 1. Start the server: `python app.py`
-2. Login at: `http://localhost:5000/login`
+2. Login at: `http://localhost:5005/login`
 3. Test endpoints using the examples above
 
 ---
