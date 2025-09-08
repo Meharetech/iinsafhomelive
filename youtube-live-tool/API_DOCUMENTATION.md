@@ -400,6 +400,26 @@ ws.onmessage = function(event) {
 
 ---
 
+## CORS Support
+
+The API now includes full CORS (Cross-Origin Resource Sharing) support, allowing web applications from any domain to access the API endpoints.
+
+### CORS Headers
+All API responses include the following headers:
+- `Access-Control-Allow-Origin: *`
+- `Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS`
+- `Access-Control-Allow-Headers: Content-Type, Authorization`
+
+### Installation
+Install required dependencies:
+```bash
+# Install dependencies
+python install_dependencies.py
+
+# Or manually:
+pip install Flask==2.3.3 Flask-CORS==4.0.0 google-auth==2.23.4 google-auth-oauthlib==1.1.0 google-auth-httplib2==0.1.1 google-api-python-client==2.108.0
+```
+
 ## Testing
 
 ### Test Script
@@ -410,9 +430,10 @@ python test_api.py
 ```
 
 ### Manual Testing
-1. Start the server: `python app.py`
-2. Login at: `http://localhost:5005/login`
-3. Test endpoints using the examples above
+1. Install dependencies: `python install_dependencies.py`
+2. Start the server: `python app.py`
+3. Login at: `http://localhost:5005/login`
+4. Test endpoints using the examples above
 
 ---
 

@@ -7,6 +7,12 @@
 - Channel Authorization: `http://localhost:5005/authorize` - Anyone can add channels
 
 **Admin Functions:** Login required for dashboard management
+
+## 🌐 CORS Support
+**Full CORS enabled** - Works from any domain!
+- `Access-Control-Allow-Origin: *`
+- All API endpoints support cross-origin requests
+- No CORS errors when accessing from web applications
 ```bash
 # Login (for admin functions only)
 curl -X POST "http://localhost:5005/login" \

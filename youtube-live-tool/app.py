@@ -4,6 +4,7 @@ import threading
 import subprocess
 from datetime import datetime, timedelta
 from flask import Flask, redirect, url_for, session, request, render_template, Response, jsonify
+from flask_cors import CORS
 from google_auth_oauthlib.flow import Flow
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
@@ -13,6 +14,17 @@ from functools import wraps
 
 app = Flask(__name__)
 app.secret_key = 'your-secure-secret-key-here'  # Change this to a secure secret key
+
+# Enable CORS for all routes
+CORS(app, origins=['*'], allow_headers=['Content-Type', 'Authorization'], methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'])
+
+# CORS response decorator for API endpoints
+def cors_response(response):
+    """Add CORS headers to response"""
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+    return response
 
 # Authentication credentials
 VALID_CREDENTIALS = {
@@ -1179,16 +1191,18 @@ def get_live_status():
                 except Exception as e:
                     print(f"Error getting status for channel {channel_id}: {e}")
         
-        return jsonify({
+        response = jsonify({
             'success': True,
             'is_live': len(live_channels) > 0,
             'total_viewers': total_viewers,
             'live_channels': live_channels,
             'total_channels': len(live_channels)
         })
+        return cors_response(response)
         
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+        response = jsonify({'success': False, 'error': str(e)})
+        return cors_response(response), 500
 
 @app.route('/api/live/channels')
 def get_live_channels():
@@ -1224,14 +1238,16 @@ def get_live_channels():
                 except Exception as e:
                     print(f"Error getting channel info for {channel_id}: {e}")
         
-        return jsonify({
+        response = jsonify({
             'success': True,
             'live_channels': live_channels,
             'count': len(live_channels)
         })
+        return cors_response(response)
         
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+        response = jsonify({'success': False, 'error': str(e)})
+        return cors_response(response), 500
 
 @app.route('/api/live/viewers')
 def get_live_viewers():
@@ -1276,15 +1292,17 @@ def get_live_viewers():
                         'status': 'error'
                     }
         
-        return jsonify({
+        response = jsonify({
             'success': True,
             'viewer_data': viewer_data,
             'total_viewers': total_viewers,
             'live_channels': len([v for v in viewer_data.values() if v['status'] == 'live'])
         })
+        return cors_response(response)
         
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+        response = jsonify({'success': False, 'error': str(e)})
+        return cors_response(response), 500
 
 @app.route('/api/live/channel/<channel_id>')
 def get_channel_details(channel_id):
@@ -1292,11 +1310,13 @@ def get_channel_details(channel_id):
     try:
         tokens = load_all_tokens()
         if channel_id not in tokens:
-            return jsonify({'success': False, 'error': 'Channel not found'}), 404
+            response = jsonify({'success': False, 'error': 'Channel not found'})
+            return cors_response(response), 404
         
         broadcast_id = multi_broadcast_ids.get(channel_id)
         if not broadcast_id:
-            return jsonify({'success': False, 'error': 'No active broadcast for this channel'}), 404
+            response = jsonify({'success': False, 'error': 'No active broadcast for this channel'})
+            return cors_response(response), 404
         
         youtube = get_authenticated_service(channel_id)
         resp = youtube.liveBroadcasts().list(
@@ -1306,7 +1326,8 @@ def get_channel_details(channel_id):
         
         items = resp.get('items', [])
         if not items:
-            return jsonify({'success': False, 'error': 'Broadcast not found'}), 404
+            response = jsonify({'success': False, 'error': 'Broadcast not found'})
+            return cors_response(response), 404
         
         item = items[0]
         snippet = item.get('snippet', {})
@@ -1314,7 +1335,7 @@ def get_channel_details(channel_id):
         statistics = item.get('statistics', {})
         content_details = item.get('contentDetails', {})
         
-        return jsonify({
+        response = jsonify({
             'success': True,
             'channel_id': channel_id,
             'broadcast_id': broadcast_id,
@@ -1330,9 +1351,11 @@ def get_channel_details(channel_id):
             'actual_end': snippet.get('actualEndTime'),
             'is_live': status.get('lifeCycleStatus') == 'live'
         })
+        return cors_response(response)
         
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+        response = jsonify({'success': False, 'error': str(e)})
+        return cors_response(response), 500
 
 @app.route('/multi_instant_viewers')
 def multi_instant_viewers():
@@ -1380,7 +1403,8 @@ def multi_instant_viewers():
             channel_id, viewer_count = future.result()
             results[channel_id] = viewer_count
     
-    return jsonify(results)
+    response = jsonify(results)
+    return cors_response(response)
 
 @app.route('/delete_channel/<channel_id>', methods=['POST'])
 def delete_channel(channel_id):
