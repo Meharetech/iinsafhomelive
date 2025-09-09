@@ -1280,7 +1280,7 @@ def send_email_to_reporters():
         # Get all reporters
         try:
             import requests
-            api_url = "https://githubtool.xyz/api/public/reporters"
+            api_url = "https://githubtool.xyz/user/reporter"
             external_response = requests.get(api_url, timeout=5)
             
             if external_response.status_code == 200:
@@ -1334,7 +1334,7 @@ def get_reporters():
         import requests
         
         # Make request to the actual API
-        api_url = "https://githubtool.xyz/api/public/reporters"
+        api_url = "https://githubtool.xyz/user/reporter"
         
         try:
             # Try to get data from the external API

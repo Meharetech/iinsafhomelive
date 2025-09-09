@@ -634,12 +634,7 @@
                             ${reporter.city || 'N/A'}, ${reporter.state || 'N/A'}
                         </div>
                     </td>
-                    <td>
-                        <div class="reporter-id">
-                            <i class="fas fa-id-card table-icon"></i>
-                            ${reporter.idCard && reporter.idCard.iinsafId ? reporter.idCard.iinsafId : 'N/A'}
-                        </div>
-                    </td>
+
                     <td>
                         <span class="status-badge status-${reporter.idCard && reporter.idCard.status === 'Approved' ? 'active' : 'inactive'}">
                             ${reporter.idCard && reporter.idCard.status === 'Approved' ? 'Verified' : 'Unverified'}
