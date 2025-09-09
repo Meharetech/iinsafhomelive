@@ -425,17 +425,30 @@ def authorize_oauth():
                 <p><a href="/">Back to Home</a></p>
             '''
         
+        # Force HTTPS redirect URI for production
+        redirect_uri = url_for('oauth2callback', _external=True)
+        if request.host.startswith('live.iinsaf.com') or request.host.startswith('freebillingapp.xyz'):
+            redirect_uri = redirect_uri.replace('http://', 'https://', 1)
+        
+        # Create OAuth flow following Google's best practices
         flow = Flow.from_client_secrets_file(
             CLIENT_SECRETS_FILE,
-            scopes=SCOPES,
-            redirect_uri=url_for('oauth2callback', _external=True)
+            scopes=SCOPES
         )
         
-        # Ensure we get a refresh token
+        # Set redirect URI explicitly (required for OAuth 2.0)
+        flow.redirect_uri = redirect_uri
+        
+        # Generate URL for request to Google's OAuth 2.0 server
+        # Use kwargs to set optional request parameters
         authorization_url, state = flow.authorization_url(
+            # Recommended, enable offline access so that you can refresh an access token without
+            # re-prompting the user for permission. Recommended for web server apps.
             access_type='offline',
+            # Optional, enable incremental authorization. Recommended as a best practice.
             include_granted_scopes='true',
-            prompt='consent'  # This ensures we get a refresh token
+            # Optional, set prompt to 'consent' will prompt the user for consent
+            prompt='consent'
         )
         
         session['state'] = state
@@ -452,12 +465,20 @@ def authorize_oauth():
 def oauth2callback():
     try:
         state = session['state']
+        # Force HTTPS redirect URI for production
+        redirect_uri = url_for('oauth2callback', _external=True)
+        if request.host.startswith('live.iinsaf.com') or request.host.startswith('freebillingapp.xyz'):
+            redirect_uri = redirect_uri.replace('http://', 'https://', 1)
+        
+        # Create OAuth flow following Google's best practices
         flow = Flow.from_client_secrets_file(
             CLIENT_SECRETS_FILE,
             scopes=SCOPES,
-            state=state,
-            redirect_uri=url_for('oauth2callback', _external=True)
+            state=state
         )
+        
+        # Set redirect URI explicitly (required for OAuth 2.0)
+        flow.redirect_uri = redirect_uri
         # Fetch the OAuth 2.0 tokens
         flow.fetch_token(authorization_response=request.url)
         creds = flow.credentials
