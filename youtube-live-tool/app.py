@@ -16,6 +16,10 @@ from functools import wraps
 app = Flask(__name__)
 app.secret_key = 'your-secure-secret-key-here'  # Change this to a secure secret key
 
+# Production configuration for HTTPS
+app.config['PREFERRED_URL_SCHEME'] = 'https'
+app.config['SERVER_NAME'] = None  # Will be set by reverse proxy
+
 # Enable CORS for all routes
 CORS(app, origins=['*'], allow_headers=['Content-Type', 'Authorization'], methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'])
 
@@ -29,6 +33,14 @@ app.config['MAIL_DEFAULT_SENDER'] = 'iinsaftest@gmail.com'
 
 # Initialize Flask-Mail
 mail = Mail(app)
+
+# HTTPS redirect middleware for production
+@app.before_request
+def force_https():
+    """Force HTTPS in production"""
+    if not request.is_secure and request.headers.get('X-Forwarded-Proto') != 'https':
+        if request.host.startswith('live.iinsaf.com') or request.host.startswith('freebillingapp.xyz'):
+            return redirect(request.url.replace('http://', 'https://', 1), code=301)
 
 # CORS response decorator for API endpoints
 def cors_response(response):
@@ -65,8 +77,8 @@ parent_dir = os.path.dirname(current_dir)
 CLIENT_SECRETS_FILE = os.path.join(parent_dir, 'client_secrets.json')
 TOKEN_FILE = 'tokens/token.json'
 
-# For development only - allows HTTP for localhost
-os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
+# For production - ensure HTTPS is used
+# os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'  # Commented out for production
 
 EVENTS_FILE = os.path.join(current_dir, 'events.json')
 DRAFTS_FILE = os.path.join(current_dir, 'drafts.json')
@@ -2058,5 +2070,11 @@ def history_page():
     return render_template('history.html')
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5005)
+    # For production deployment
+    import os
+    debug_mode = os.environ.get('FLASK_DEBUG', 'False').lower() == 'true'
+    port = int(os.environ.get('PORT', 5005))
+    host = os.environ.get('HOST', '0.0.0.0')
+    
+    app.run(debug=debug_mode, host=host, port=port)
 
