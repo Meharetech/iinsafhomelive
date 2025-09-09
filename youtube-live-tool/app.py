@@ -20,6 +20,10 @@ app.secret_key = 'your-secure-secret-key-here'  # Change this to a secure secret
 app.config['PREFERRED_URL_SCHEME'] = 'https'
 app.config['SERVER_NAME'] = None  # Will be set by reverse proxy
 
+# Configure Flask to trust reverse proxy headers
+from werkzeug.middleware.proxy_fix import ProxyFix
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
+
 # Enable CORS for all routes
 CORS(app, origins=['*'], allow_headers=['Content-Type', 'Authorization'], methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'])
 
@@ -38,9 +42,20 @@ mail = Mail(app)
 @app.before_request
 def force_https():
     """Force HTTPS in production"""
-    if not request.is_secure and request.headers.get('X-Forwarded-Proto') != 'https':
-        if request.host.startswith('live.iinsaf.com') or request.host.startswith('freebillingapp.xyz'):
-            return redirect(request.url.replace('http://', 'https://', 1), code=301)
+    # Check if we're on production domains
+    if request.host.startswith('live.iinsaf.com') or request.host.startswith('freebillingapp.xyz'):
+        # Check various ways to detect if request is secure
+        is_secure = (
+            request.is_secure or  # Direct HTTPS
+            request.headers.get('X-Forwarded-Proto') == 'https' or  # Reverse proxy
+            request.headers.get('X-Forwarded-Ssl') == 'on' or  # Alternative header
+            request.headers.get('X-Forwarded-Scheme') == 'https'  # Another alternative
+        )
+        
+        if not is_secure:
+            # Force HTTPS redirect
+            https_url = request.url.replace('http://', 'https://', 1)
+            return redirect(https_url, code=301)
 
 # CORS response decorator for API endpoints
 def cors_response(response):
@@ -2089,6 +2104,23 @@ def delete_stream_session_route(session_id):
 def history_page():
     """Render the dedicated history page"""
     return render_template('history.html')
+
+@app.route('/debug-https')
+def debug_https():
+    """Debug route to check HTTPS detection"""
+    debug_info = {
+        'is_secure': request.is_secure,
+        'host': request.host,
+        'url': request.url,
+        'scheme': request.scheme,
+        'headers': {
+            'X-Forwarded-Proto': request.headers.get('X-Forwarded-Proto'),
+            'X-Forwarded-Ssl': request.headers.get('X-Forwarded-Ssl'),
+            'X-Forwarded-Scheme': request.headers.get('X-Forwarded-Scheme'),
+            'Host': request.headers.get('Host'),
+        }
+    }
+    return jsonify(debug_info)
 
 if __name__ == '__main__':
     # For production deployment
